@@ -1,0 +1,16 @@
+Package: SELECT
+Title: Functions for fitting size selection curves to trawl data
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Russell",
+           family = "Millar",
+           role = c("aut", "cre"),
+           email = "r.millar@auckland.ac.nz",
+           comment = c(ORCID = "0000-0002-1121-8721"))
+Description: SELECT uses the SHare-Each-Lengths-Catch-Total method of Millar (1992) for analysis of covered codend and paired hauls experiments. Logistic and Richards curves can be fitted. Plots of fitted values and residuals are produced, and model diagnostics.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
