@@ -123,7 +123,7 @@ ttfit=function(catch=catchdat,type="logit",probs=c(0.25,0.5,0.75),
     Richhood2par=function(x,catch,psplit) richhood2par(x,catch,psplit)+delta.pen*log(x[3])^2
     Tfit=nlm(Richhood2par,c(x0[1:2],delta),iterlim=1000,catch=catch,psplit=psplit)
     Pars=Tfit$est
-    if(verbose) cat("\n"," Likelihood of fitttttted model is ",
+    if(verbose) cat("\n"," Likelihood of fitted model is ",
                     format(-richhood2par(Pars,catch,psplit)),"\n")
     select=lselect(Pars[1:2],lenclass)^(1/Pars[3])
     if(is.null(plotlens)) r=select else r=lselect(Pars[1:2],plotlens)^(1/Pars[3])
@@ -134,7 +134,7 @@ ttfit=function(catch=catchdat,type="logit",probs=c(0.25,0.5,0.75),
    else {
     Richhood=function(x,catch) richhood(x,catch)+delta.pen*log(x[3])^2
     Tfit=nlm(Richhood,c(x0[1:2],delta,x0[3]),iterlim=1000,catch=catch); Pars=Tfit$est
-    if(verbose) cat("\n"," Likelihood of fittttttted model is ",
+    if(verbose) cat("\n"," Likelihood of fitted model is ",
                     format(-richhood(Pars,catch)),"\n")
     select=lselect(Pars[1:2],lenclass)^(1/Pars[3])
     if(is.null(plotlens)) r=select else r=lselect(Pars[1:2],plotlens)^(1/Pars[3])
