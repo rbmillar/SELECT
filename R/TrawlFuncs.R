@@ -266,11 +266,11 @@ ccfit=function(catch=catchdat,type="logit",probs=c(0.25,0.5,0.75),x0=c(-10,0.3),
 
   if(details)
    list(converged=Tfit$code,x=Pars,l=lhoods,lens=Tlens$lens,sr=Tlens$sr,
-     CF=c("DevCF"=DevCF,"PCF"=PCF), xcovar=Tcov$covar,lensr.covar=Tlens$covar,r=r,
-     devres=Tdevres$devres,suff.dat=Tdevres$suff.dat)
+     CF=c("DevCF"=DevCF,"PCF"=PCF,"d.o.f."=suff.dof), xcovar=Tcov$covar,
+     lensr.covar=Tlens$covar,r=r,devres=Tdevres$devres,suff.dat=Tdevres$suff.dat)
   else
    list(converged=Tfit$code,x=Pars,l=lhoods,lens=Tlens$lens,sr=Tlens$sr,
-        CF=c("DevCF"=DevCF,"PCF"=PCF)) }
+        CF=c("DevCF"=DevCF,"PCF"=PCF,"d.o.f."=suff.dof)) }
 
 ######################################################################
 #Function for REP calculation for individual hauls alternate haul data
@@ -724,7 +724,7 @@ covrich=function(x,catch,npars=3,p=0.5) {
 #Robust version of solve()
 Solve=function(M,...) {
   inverse=try(solve(M))
-  if(class(inverse)=="try-error") {
+  if(class(inverse)[1]=="try-error") {
     #eps=1
     #cat("\n***Covariances are invalid***\n")
     #inverse=solve(M+diag(eps,nrow(M)),...)

@@ -31,7 +31,8 @@ ttfit(
 \item{catch}{Matrix with 3 columns. These must be
 \enumerate{
 \item length (i.e., midpoint of length class);
-\item Freq in experimental gear; 3) Freq in nonselective control gear
+\item Freq in experimental gear;
+\item Freq in nonselective control gear
 }}
 
 \item{type}{Character. Use type="rich" to fit Richards curve}

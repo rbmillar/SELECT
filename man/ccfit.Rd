@@ -2,7 +2,7 @@
 % Please edit documentation in R/TrawlFuncs.R
 \name{ccfit}
 \alias{ccfit}
-\title{Fit logistic or Richards seln curve to covered-codend data.}
+\title{Fit logistic or Richards selection curve to covered-codend data.}
 \usage{
 ccfit(
   catch = catchdat,
@@ -24,7 +24,8 @@ ccfit(
 \item{catch}{Matrix with 3 columns. These must be
 \enumerate{
 \item length (i.e., midpoint of length class);
-\item Freq in experimental gear; 3) Freq in nonselective cover
+\item Freq in experimental gear;
+\item Freq in nonselective cover
 }}
 
 \item{type}{Character. Use type="rich" to fit Richards curve}
@@ -50,5 +51,5 @@ sr Selection range
 CF Over-dispersion correction factors, using both deviance and Pearson chisq.
 }
 \description{
-Fit logistic or Richards seln curve to covered-codend data.
+Fit logistic or Richards selection curve to covered-codend data.
 }

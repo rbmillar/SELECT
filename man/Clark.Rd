@@ -6,21 +6,22 @@
 \title{Covered codend haddock data}
 \format{
 Dataframe of dimension 37 by 3. Lengthclass (cm) in the first column,
-and haddock frequencies in the codend and cover in columns two and three, respectively.
+and haddock frequencies in the cover and codend in columns two and three, respectively.
 }
 \usage{
 data(Clark)
 }
 \description{
-Covered codend haddock data used in Wileman et al. (1996). They are the total haddock catches from
-three hauls each of 20 minute duration with 113 mm diamond mesh, originally from Clark
-(1957. ICES Workshop on selectivity, Lisbon. Paper S25).
+Covered codend haddock data used in Wileman et al. (1996). They are the total
+haddock catches from three hauls each of 20 minute duration with 113 mm diamond mesh,
+originally from Clark (1957. ICES Workshop on selectivity, Lisbon. Paper S25).
 }
 \examples{
 data(Clark)
 }
 \references{
-Wileman et al. (1995) Manual of Methods of Measuring the Selectivity of Towed Fishing Gears.
+Wileman et al. (1995) Manual of Methods of Measuring the
+Selectivity of Towed Fishing Gears.
 ICES Cooerative Research Report, No 215.
 }
 \keyword{datasets}

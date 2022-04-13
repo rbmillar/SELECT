@@ -1,0 +1,164 @@
+---
+title: 'Next Generation SELECT  \newline Examples of Use'
+author: "Russell Millar"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+---
+
+```{r}
+#Source from local directory
+#source("SELECT.R") #New SELECT
+#source("SelnCurveDefinitions.R") #These can be extended by the user
+#source("TrawlFuncs.R") Also included in R folder of the SELECT package
+
+remotes::install_local("S:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT",force=T)
+library(SELECT)
+```
+
+
+# Analysis of Clark's covered codend haddock data
+#### We see that logistic selection is prefered
+```{r}
+#Clark is a df in SELECT package
+#Clark=read.table("../inst/extdata/Clark113_20min.dat",head=T) #NB: cover is in 2nd col
+#Logistic
+fitL=SELECT(Clark,dtype="cc")
+ModelCheck(fitL,minE=1,las=1)
+Estimates(fitL) 
+PlotCurves(fitL,plotlens=seq(19,56,0.1),las=1)
+#Compare to old functions
+ccfit(Clark[,c(1,3,2)],suff.big=1)
+
+#Richards
+fitR=SELECT(Clark,dtype="cc",stype="richards")
+ModelCheck(fitR,minE=1,las=1)
+Estimates(fitR);
+PlotCurves(fitR,plotlens=seq(19,56,0.1))
+#Compare to old functions
+ccfit(Clark[,c(1,3,2)],x0=c(-30,1,0.6),type="rich",suff.big=1)
+```
+
+
+# Analysis of Pope's alternate haul haddock data
+```{r}
+#Pope is a df in the SELECT package
+#Pope=read.table("../inst/extdata/haddock.dat",head=T) #NB: control is in 2nd col
+#Logistic
+fitL=SELECT(Pope,dtype="ph")
+ModelCheck(fitL,minE=1,las=1)
+Estimates(fitL) 
+PlotCurves(fitL,plotlens=seq(19,56,0.1),las=1)
+#Compare to old functions
+ttfit(Pope[,c(1,3,2)],suff.big=1)
+
+#Fixed split, psplit=0.5
+fitL2=SELECT(Pope,dtype="re",x0=c(-30,1))
+ModelCheck(fitL2,minE=1,las=1)
+Estimates(fitL2) 
+PlotCurves(fitL2,plotlens=seq(19,56,0.1),las=1)
+ttfit(Pope[,c(1,3,2)],psplit=0.5,x0=c(-30,1,0.5),suff.big=1)
+
+#Richards
+fitR=SELECT(Pope,dtype="ph",stype="richards",
+            penalty.func=function(theta) 0.01*theta[3]^2)
+ModelCheck(fitR,minE=1,las=1)
+Estimates(fitR);
+PlotCurves(fitR,plotlens=seq(19,56,0.1))
+#Compare to old functions
+ttfit(Pope[,c(1,3,2)],x0=c(-30,1,0.5,1),type="rich",delta.pen=0.01,suff.big=1)
+
+#Fixed split, psplit=0.6
+fitR2=SELECT(Pope,dtype="re",stype="richards",x0=c(-30,1,0),rel.power=c(2,3),
+              penalty.func=function(theta) 0.01*theta[3]^2)
+              #control=list(maxit=1000,reltol=1e-8,parscale=c(10,1,1)))
+ModelCheck(fitR2,minE=1,las=1)
+Estimates(fitR2) 
+PlotCurves(fitR2,plotlens=seq(19,56,0.1),las=1,standardize = T)
+ttfit(Pope[,c(1,3,2)],psplit=0.6,x0=c(-30,1,0.5,1),type="rich",suff.big=1)
+```
+
+
+# Analysis of Holt's gillnet data
+
+#### Several alternative curve types are fitted. The bi-lognormal looks preferable, evidenced by a decrease in deviance of about 160. Even taking in to account the over-dispersion correction factor of about 9, this is still highly significant.
+
+
+```{r}
+Holt=read.table("../inst/extdata/holt.dat",head=F); 
+Meshs=c(13.5,14,14.8,15.4,15.9,16.6,17.8,19) 
+#Equal fishing power
+pwr=rep(1,8)
+#Or use this for fishing power proportional to meshsize
+#pwr=Meshsize
+
+par(mfrow=c(3,2),mar=c(4.1,4.1,1,1))
+fit=SELECT(Holt,dtype="re",stype="norm.loc",Meshsize=Meshs,x0=c(60,4),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Holt,dtype="re",stype="norm.sca",Meshsize=Meshs,x0=c(60,4),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+#Needs wide seln curve for x0
+fit=SELECT(Holt,dtype="re",stype="gamma",Meshsize=Meshs,x0=c(10,5),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Holt,dtype="re",stype="logistic",Meshsize=Meshs,x0=c(-60,1),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Holt,dtype="re",stype="richards",Meshsize=Meshs,x0=c(-60,1,0),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Holt,dtype="re",stype="lognorm",Meshsize=Meshs,x0=c(log(60),0.1),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Holt,dtype="re",stype="binorm.sca",Meshsize=Meshs,x0=c(55,4,65,4,2),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Holt,dtype="re",stype="bilognorm",Meshsize=Meshs,x0=c(4,0.2,4.2,0.1,2),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+```
+
+# Analysis of stacked trammel net data with NA's
+
+#### Here, the data are from two expts using different mesh sizes. This analysis assumes common retention curve in both expts. Overdispersion factor of about 2. The lognormal and binorm.sca are the two preferable curves.
+
+Note that summary function does not produce residual plot since lengths are not unique.
+```{r, echo=F,eval=F}
+Trammel=read.table("../inst/extdata/trammel.dat",head=F); 
+#Trammel=as.matrix(Trammel) #Needed only if a complete column of NA's
+Meshs=c(6.1,7.6,7.9,9.1,10.6,13) 
+#Equal fishing power (within each of the two expts)
+pwr=rep(1,6)
+#Or use this for fishing power proportional to meshsize
+#pwr=Meshsize
+
+par(mfrow=c(3,2),mar=c(4.1,4.1,1,1))
+fit=SELECT(Trammel,dtype="re",stype="norm.loc",Meshs=Meshs,x0=c(25,4),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(10,40,0.1))
+
+fit=SELECT(Trammel,dtype="re",stype="norm.sca",Meshs=Meshs,x0=c(25,4),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(10,40,0.1))
+
+fit=SELECT(Trammel,dtype="re",stype="gamma",Meshs=Meshs,x0=c(5,5),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(10,40,0.1))
+
+fit=SELECT(Trammel,dtype="re",stype="lognorm",Meshs=Meshs,x0=c(log(25),0.1),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(10,40,0.1))
+
+fit=SELECT(Trammel,dtype="re",stype="logistic",Meshs=Meshs,x0=c(-30,1),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+#fit=SELECT(Trammel,dtype="re",stype="richards",Meshsize,x0=c(70,4,0),rel.power=pwr) 
+#ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Trammel,dtype="re",stype="binorm.sca",Meshs=Meshs,x0=c(18.6,3.5,25,4,-2),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(10,40,0.1))
+
+fit=SELECT(Trammel,dtype="re",stype="bilognorm",Meshs=Meshs,x0=c(3,0.2,3.2,0.1,2),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(10,40,0.1))
+```
+

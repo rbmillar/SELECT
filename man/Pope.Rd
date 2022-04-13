@@ -6,20 +6,32 @@
 \title{Alternate hauls haddock data}
 \format{
 Dataframe of dimension 24 by 3. Lengthclass (cm) in the first column,
-and haddock frequencies in the codend and cover in columns two and three, respectively.
+and haddock frequencies in the control and experimental codend in
+columns two and three, respectively.
+
+list object with components Counts (11 by 8) and
+Meshsize (vector of meshsizes)  respectively.
 }
 \usage{
 data(Pope)
+
+data(Holt)
 }
 \description{
 Alternate hauls haddock data used in Wileman et al. (1996) and Pope et al. (1975).
 Codend mesh is 87 mm diamond.
+
+Counts from aight mesh gang of gillnets
 }
 \examples{
 data(Pope)
+data(Pope)
 }
 \references{
-Wileman et al. (1995) Manual of Methods of Measuring the Selectivity of Towed Fishing Gears.
-ICES Cooerative Research Report, No 215.
+Wileman et al. (1995) Manual of Methods of Measuring the
+Selectivity of Towed Fishing Gears. ICES Cooerative Research Report, No 215.
+
+Holt S. J. (1963). A method for determining gear selectivity
+and its application. ICNAF Special Pubn, 5: 106-115
 }
 \keyword{datasets}
