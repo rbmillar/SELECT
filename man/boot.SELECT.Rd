@@ -9,7 +9,10 @@ boot.SELECT(
   statistic,
   N,
   SetID = "Haul",
+  BlockID = NULL,
+  GearID = NULL,
   Freqs = c("nfine", "nwide"),
+  within.resamp = T,
   ...
 )
 }

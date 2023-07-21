@@ -9,7 +9,7 @@ Dataframe of dimension 24 by 3. Lengthclass (cm) in the first column,
 and haddock frequencies in the control and experimental codend in
 columns two and three, respectively.
 
-list object with components Counts (11 by 8) and
+list object with components Counts (11 by 9 - first column is lengths) and
 Meshsize (vector of meshsizes)  respectively.
 }
 \usage{

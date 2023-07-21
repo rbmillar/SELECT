@@ -4,16 +4,33 @@
 \alias{Dble.boot}
 \title{Return a dataframe containing double bootstrapped raw data.}
 \usage{
-Dble.boot(Data, SetID = "Haul", Freqs = c("nfine", "nwide"), smooth = T)
+Dble.boot(
+  Data,
+  SetID = "Haul",
+  BlockID = NULL,
+  GearID = NULL,
+  Freqs = c("nfine", "nwide"),
+  within.resamp = T,
+  smooth = F
+)
 }
 \arguments{
 \item{Data}{Stacked matrix or dataframe of catches in SELECT format,
 with lengthclass in first column. Remaining columns are raw catch frequencies}
 
-\item{smooth}{Smooth at within-haul phase to avoid losing degrees of freedom (from increasing number of zero freqs)}
-
-\item{Set.id}{Grouping variable containing the tow/haul/set id number.
+\item{SetID}{Name of grouping variable containing the tow/haul/set id number.
 Vector of same length as number of rows in Data.}
+
+\item{BlockID}{If specified, name of blocking variable.
+Bootstrapping is first done over blocks, and then within each block.}
+
+\item{GearID}{If specified, name of the gear indicator variable.
+This restricts bootstrapping to within each gear and is intended to be used
+for non-paired data.}
+
+\item{within.resamp}{If F, no resampling at observation level.}
+
+\item{smooth}{Smooth at within-haul phase to avoid losing degrees of freedom (from increasing number of zero freqs)}
 }
 \value{
 Dataframe of double-bootstrapped freqs

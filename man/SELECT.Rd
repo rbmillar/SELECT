@@ -14,8 +14,8 @@ SELECT(
   rel.power = NULL,
   penalty.func = NULL,
   print.out = T,
-  control = list(maxit = 1000, reltol = 1e-08),
-  fit = T
+  control = list(maxit = 10000, reltol = 1e-08),
+  Fit = T
 )
 }
 \description{

@@ -2,14 +2,14 @@
 % Please edit documentation in R/BootstrapAndRandomize.R
 \name{Randomize}
 \alias{Randomize}
-\title{Permutation test for no difference in selectivity of two gear}
+\title{Return a permuted SELECT format dataframe}
 \usage{
 Randomize(catch, varnames = c("Haul", "nwide", "nfine"))
 }
 \arguments{
-\item{varnames}{Length-3 vector containing name of haulID variable, and 2 catch freq vars}
+\item{catch}{Stacked matrix or dataframe of catches in SELECT format}
 
-\item{Stacked}{matrix or dataframe of catches in SELECT format}
+\item{varnames}{Length-3 vector containing name of haulID variable, and 2 catch freq vars}
 }
 \value{
 Dataframe, with randomized gear treatment within each haul

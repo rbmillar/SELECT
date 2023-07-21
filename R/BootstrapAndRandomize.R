@@ -45,10 +45,10 @@ WgtAvg=function(y,w=c(0.25,0.5,0.25)) {
 #' with lengthclass in first column. Remaining columns are raw catch frequencies
 #' @param SetID Name of grouping variable containing the tow/haul/set id number.
 #' Vector of same length as number of rows in Data.
-#' @param BlockID If specified, name of blocking variable. 
+#' @param BlockID If specified, name of blocking variable.
 #' Bootstrapping is first done over blocks, and then within each block.
-#' @param GearID If specified, name of the gear indicator variable. 
-#' This restricts bootstrapping to within each gear and is intended to be used 
+#' @param GearID If specified, name of the gear indicator variable.
+#' This restricts bootstrapping to within each gear and is intended to be used
 #' for non-paired data.
 #' @param within.resamp If F, no resampling at observation level.
 #' @param smooth Smooth at within-haul phase to avoid losing degrees of freedom (from increasing number of zero freqs)
@@ -65,8 +65,8 @@ Dble.boot=function(Data,SetID="Haul",BlockID=NULL,GearID=NULL,
   nSets=length(uniqSets)
   #cat("\n",nSets,"sets to be double bootstrapped")
   RanList=list(uniqSets)
-  
-  if(is.null(BlockID)&is.null(GearID)) BootID=sample(uniqSets,nSets,replace=T) 
+
+  if(is.null(BlockID)&is.null(GearID)) BootID=sample(uniqSets,nSets,replace=T)
   if(!is.null(BlockID)) { #Bootstraps over BlockID
     BlockSets=tapply(Sets,Data[,BlockID],unique)
     nBlocks=length(BlockSets)
@@ -79,23 +79,23 @@ Dble.boot=function(Data,SetID="Haul",BlockID=NULL,GearID=NULL,
     nGears=length(GearSets)
     WkList=as.list(1:nGears)
     for(j in 1:nGears) {
-      WkList[[j]]=lapply(RanList,function(x) x[x %in% GearSets[[j]] ]) 
+      WkList[[j]]=lapply(RanList,function(x) x[x %in% GearSets[[j]] ])
       WkList[[j]]=lapply(WkList[[j]],sample,replace=T)
     }
     BootID=unlist(WkList)
-  }    
-  
+  }
+
   nRanSets=length(BootID)
   BootList=as.list(1:nRanSets)
-  
+
   for(j in 1:nRanSets) BootList[[j]] <- Data %>% filter(Sets==BootID[j])
-  if(within.resamp&smooth) { 
-    #Smooth to reduce number of zero obs 
+  if(within.resamp&smooth) {
+    #Smooth to reduce number of zero obs
     #<Inefficient code since WgtAvg only needs to be done once>
     for(j in 1:nRanSets) {
       m=nrow(BootList[[j]])
-      for(k in 1:length(Freqs)) 
-        BootList[[j]][,Freqs[k]]=rpois(m,WgtAvg(BootList[[j]][,Freqs[k]],w=w)) 
+      for(k in 1:length(Freqs))
+        BootList[[j]][,Freqs[k]]=rpois(m,WgtAvg(BootList[[j]][,Freqs[k]],w=w))
     }
   }
   bootData=as.data.frame(rbindlist(BootList))
@@ -110,11 +110,11 @@ Dble.boot=function(Data,SetID="Haul",BlockID=NULL,GearID=NULL,
 #' @description ggplot showing fitted curve and bootstrap bounds
 #'
 #' @param BootPreds Matrix with bootstrap by row and fitted values at length in columns.
-#' @param lenseqs Lengths at which fitted values are calculated. 
+#' @param lenseqs Lengths at which fitted values are calculated.
 #' @param predn Fitted curve
 #'
-#' @return Dataframe, with randomized gear treatment within each haul
-#' @export ggplot GROB
+#' @return ggplot GROB
+#' @export
 #'
 
 BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025) {
@@ -131,7 +131,7 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025) {
     theme(axis.text=element_text(size=txt),axis.title=element_text(size=txt))+
     theme(plot.margin = unit(c(0.75,0.5,0.25,0.5), "cm"))
   if(!is.null(Data)) BootGROB = BootGROB + geom_point(data=Data,aes(x=lgth,y=y))
-  BootGROB 
+  BootGROB
 }
 
 
@@ -164,7 +164,7 @@ Randomize=function(catch,varnames=c("Haul","nwide","nfine")) {
 #' Return a dataframe with permutations of haul treatment
 #' @description Randomization of haul treatments (may be more than 2)
 #'
-#' @param Data Stacked matrix or dataframe of catches in long format. Data are not 
+#' @param Data Stacked matrix or dataframe of catches in long format. Data are not
 #' assumed paired, so could be different length range within each haul.
 #' @param SetID Name of grouping variable containing the tow/haul/set id number.
 #' @param GearID Name of the gear (treatment) indicator variable.
@@ -229,13 +229,13 @@ Dble.boot230425=function(Data,SetID="Haul",BlockID=NULL,
     BootID=unlist(BootByBlock)
   }
   for(j in 1:nTows) BootList[[j]] <- Data %>% filter(Tow==BootID[j])
-  if(inner.resamp&smooth) { 
-    #Smooth to reduce number of zero obs 
+  if(inner.resamp&smooth) {
+    #Smooth to reduce number of zero obs
     #<Inefficient code since WgtAvg only needs to be done once>
     for(j in 1:nTows) {
       m=nrow(BootList[[j]])
-      for(k in 1:length(Freqs)) 
-        BootList[[j]][,Freqs[k]]=rpois(m,WgtAvg(BootList[[j]][,Freqs[k]],w=w)) 
+      for(k in 1:length(Freqs))
+        BootList[[j]][,Freqs[k]]=rpois(m,WgtAvg(BootList[[j]][,Freqs[k]],w=w))
     }
   }
   bootData=as.data.frame(rbindlist(BootList))
