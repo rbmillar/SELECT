@@ -128,10 +128,10 @@ propncurves=function(rtype) {
         seln=c((1-psplit)*smatrix[,1],psplit*smatrix[,2])
         return(seln) } },
     "un"={ #Unrestricted parameters of paired hauls
-       #The "un" option is for use with integrated selectivity
+       #The "un" option is for primarily for use with hybrid selectivity
        #and so is not documented or implemented for Estimates()
        function(lens,Meshsize,th) {
-        npars=length(th)
+        npars=length(th) #Contains pars for both gears, and split
         psplit=plogis(th[npars]) #psplit is last parameter
         nlens=length(lens)
         id1=1:(nlens/2); id2=(nlens/2+1):nlens

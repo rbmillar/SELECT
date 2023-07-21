@@ -11,7 +11,7 @@
 #' @export
 SELECT=function(Data,dtype,stype="logistic",Q=NULL,Meshsize=NULL,x0=NULL,rel.power=NULL,
                 penalty.func=NULL,print.out=T,
-                control=list(maxit=1000,reltol=1e-8),fit=T) {
+                control=list(maxit=10000,reltol=1e-8),Fit=T) {
   #Assemble the SELECT arguments, and put in SELECT.args
   dtype=substr(dtype,1,2)
   rtype=paste0(dtype,".",stype)
@@ -37,32 +37,36 @@ SELECT=function(Data,dtype,stype="logistic",Q=NULL,Meshsize=NULL,x0=NULL,rel.pow
   if(is.null(x0)) x0=StartValues(rtype,Data)
   SELECT.args=list(Data=Data,rtype=rtype,Q=Q,Meshsize=Meshsize,x0=x0,
                    rel.power=rel.power,penalty.func=penalty.func)
+  #Calculate logliks at x0 and of saturated model
   ll.init=Const-nllhood(theta=x0,Data,Meshsize,r,rel.power,penalty.func)
-  #If not fitting (using just x0)
-  if(!fit) {
-    if(print.out) cat("SELECT model evaluated at x0 - no optimization: \n")
-    z=c(list(par=x0),SELECT.args,loglik.init=ll.init)
-    return( invisible(z) ) }
-  #Calculate logliks of full model and at x0
   CountTotals=apply(Counts,1,sum,na.rm=TRUE)
   CountTotals=ifelse(CountTotals==0,Inf,CountTotals)
   CountPropns=Counts/CountTotals
-  fullfit.l=Const+sum(Counts[Counts>0]*log(CountPropns[Counts>0]),na.rm=TRUE)
-  if(print.out) cat("Evaluated at initial parameters",round(x0,2),
-                    ", the log-likelihood is",ll.init,"\n")
-  #Fit=TRUE
-  if(print.out)
-    cat("Fitting SELECT model with",stype,"selection curves to",design,"data.\n")
-  fit=optim(x0,nllhood,Data=Data,Meshsize=Meshsize,r=r,rel.power=rel.power,
-            penalty.func=penalty.func,hessian=T,control=control)
+  ll.fullfit=Const+sum(Counts[Counts>0]*log(CountPropns[Counts>0]),na.rm=TRUE)
+  if(print.out) cat("Log-likelihood is",ll.init,"at x0=",round(x0,2),"\n")
+  if(print.out) cat("Saturated log-likelihood is",ll.fullfit,"\n")
+  if(!Fit) {
+    if(print.out) cat("SELECT model fitted at x0 - no optimization: \n")
+    control$maxit=0
+    #Hessian is not evaluated at x0 when maxit=0, so set hessian=F
+    fit=optim(x0,nllhood,Data=Data,Meshsize=Meshsize,r=r,rel.power=rel.power,
+              penalty.func=penalty.func,hessian=F,control=control)
+    fit$par=x0 #Quirk of optim with maxit=0 is that pars are set to zero
+    fit$hessian=matrix(NA,length(x0),length(x0)) }
+  if(Fit) {
+    if(print.out)
+      cat("Fitting SELECT model with",stype,"selection curves to",design,"data.\n")
+    fit=optim(x0,nllhood,Data=Data,Meshsize=Meshsize,r=r,rel.power=rel.power,
+            penalty.func=penalty.func,hessian=T,control=control) }
   fit$value=fit$value-Const
   fit=fit[names(fit) %in% c("counts", "message") == FALSE]
-  Dev=2*(fullfit.l+fit$value)
+  Dev=2*(ll.fullfit+fit$value)
   if(print.out) {
     cat(paste0("Convergence code ",fit$convergence,
              ": Optimizer has ",ifelse(fit$convergence==0,"","*NOT*"),"converged\n"))
     cat("Pars=",fit$par,", Deviance=",Dev,", #len classes=",sum(CountTotals>0),"\n") }
-  z=c(Call=match.call(),fit,deviance=Dev,SELECT.args,loglik.init=ll.init)
+  z=c(Call=match.call(),fit,deviance=Dev,SELECT.args,
+        loglik.init=ll.init,log.full=ll.fullfit)
   class(z)="SELECT"
   return(invisible(z))
 #  invisible(c(fit,deviance=Dev,rtype=rtype,rel.power=list(rel.power),
@@ -85,7 +89,8 @@ nllhood=function(theta,Data,Meshsize,r,rel.power,penalty.func) {
   nll=-sum(Counts[Counts>0]*log(phi[Counts>0]),na.rm=T)
   #nll=sum(byrow_dmultinom(Counts,prob=phi,log=T))
   nll=nll+penalty.func(theta)
-  return(nll) }
+  return(nll)
+}
 
 
 #===============================================================================
@@ -160,24 +165,26 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
          xlab=xlab,ylab="Deviance residuals",lab=xyticks,...)
     abline(h=0) }
   } #End of plotting deviance residuals
-  if( (plots[2]|!is.null(plotlens)) &nmeshes==2){ #Plot the fit to propns
+  if(!is.null(plotlens)) {
+    rmatrix=outer(plotlens,fit$Meshsize,r,fit$par)
+    rmatrix=t(t(rmatrix)*fit$rel.power)
+    phi=rmatrix/apply(rmatrix,1,sum,na.rm=TRUE) 
+  }
+  if(is.null(plotlens)) plotlens=lens
+  rownames(phi)=plotlens
+  outlist=c(outlist,list(phi=phi))
+  if( plots[2] & nmeshes==2){ #Plot the fit to propns
     Data=fit$Data; pwr=fit$rel.power
-    if(is.null(plotlens)) plotlens=seq(min(lens),max(lens),length=100)
-    fit.rmatrix=outer(plotlens,fit$Meshsize,r,fit$par)
-    fit.rmatrix=t(t(fit.rmatrix)*pwr)
-    phi=fit.rmatrix[,2]/(fit.rmatrix[,1]+fit.rmatrix[,2])
-	outlist=c(outlist,list(phi=phi))
-	if(plots[2]) {
-		plot(lens,Data[,3]/(Data[,2]+Data[,3]),type=ifelse(AreLensUnique,"b","p"),
+	  plot(lens,Data[,3]/(Data[,2]+Data[,3]),type=ifelse(AreLensUnique,"b","p"),
              ylim=c(0,1),xlab=xlab,ylab=ylab,lab=xyticks,...)
-		lines(plotlens,phi,type="l",lty=2) }
-  } #End of plotting fit
+	  lines(plotlens,phi[,2],type="l",lty=2) 
+	}
   if(print.out) {
     cat("Model fit:\n"); print(out1[1,]);
     if(minE>0) {
       cat("\nCorrection factors from cells with expected count >",minE,":\n")
       print(out2[1,])
-	  outlist=list(outlist,CF=out2) } }
+	    outlist=c(outlist,CF=out2) } }
   invisible(outlist)
 }
 
