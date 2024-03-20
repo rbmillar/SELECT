@@ -66,7 +66,7 @@ SELECT=function(Data,dtype,stype="logistic",Q=NULL,Meshsize=NULL,x0=NULL,rel.pow
              ": Optimizer has ",ifelse(fit$convergence==0,"","*NOT*"),"converged\n"))
     cat("Pars=",fit$par,", Deviance=",Dev,", #len classes=",sum(CountTotals>0),"\n") }
   z=c(Call=match.call(),fit,deviance=Dev,SELECT.args,
-        loglik.init=ll.init,log.full=ll.fullfit)
+        init.logLik=ll.init,full.logLik=ll.fullfit,logLik=-fit$value)
   class(z)="SELECT"
   return(invisible(z))
 #  invisible(c(fit,deviance=Dev,rtype=rtype,rel.power=list(rel.power),
@@ -132,6 +132,7 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
   #If n cells for a given length have freq>=minE, it contributes max(0,n-1) dof
   if(minE>0) {
     Index=(E>minE)
+    #But also need to exclude a cell if it is the only one in a row with freq>=minE
     RowIndex=(1:nrow(E))[apply(Index,1,sum,na.rm=TRUE)==1]
     Index[RowIndex,]=FALSE
     dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-1))-length(fit$par)
@@ -168,7 +169,7 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
   if(!is.null(plotlens)) {
     rmatrix=outer(plotlens,fit$Meshsize,r,fit$par)
     rmatrix=t(t(rmatrix)*fit$rel.power)
-    phi=rmatrix/apply(rmatrix,1,sum,na.rm=TRUE) 
+    phi=rmatrix/apply(rmatrix,1,sum,na.rm=TRUE)
   }
   if(is.null(plotlens)) plotlens=lens
   rownames(phi)=plotlens
@@ -177,7 +178,7 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
     Data=fit$Data; pwr=fit$rel.power
 	  plot(lens,Data[,3]/(Data[,2]+Data[,3]),type=ifelse(AreLensUnique,"b","p"),
              ylim=c(0,1),xlab=xlab,ylab=ylab,lab=xyticks,...)
-	  lines(plotlens,phi[,2],type="l",lty=2) 
+	  lines(plotlens,phi[,2],type="l",lty=2)
 	}
   if(print.out) {
     cat("Model fit:\n"); print(out1[1,]);
@@ -346,6 +347,32 @@ PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,standardize=F
   invisible(lensmatrix) }
 
 
+
+#===============================================================================
+#' Function to calculate overdispersion
+#' @description Returns OD estimate from matrices of observed and expected counts
+#' @export
+calcOD=function(O,E,npar,minE=1) {
+  if(!identical(dim(O),dim(E))) stop("O and E must be same dimension")
+  if( max(abs(apply(O,1,sum)-apply(E,1,sum)))>1e-6 )
+     cat("\nWARNING: Row sums of observed and expected not all equal\n")
+  Pearson.resids=(O-E)/sqrt(E)
+  wk=O*log(O/E); wk[is.na(wk)]=0
+  Dev.resids=sign(O-E)*sqrt(2*(E-O+wk))
+  #If n cells for a given length have freq>=minE, it contributes max(0,n-1) dof
+  Index=(E>minE)
+  #But also need to exclude a cell if it is the only one in a row with freq>=minE
+  RowIndex=(1:nrow(E))[apply(Index,1,sum,na.rm=TRUE)==1]
+  Index[RowIndex,]=FALSE
+  dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-1))-npar
+  Pearson.chisq=sum((Pearson.resids^2)[Index],na.rm=TRUE)
+  Deviance=sum((Dev.resids^2)[Index],na.rm=TRUE)
+  Deviance.CF=Deviance/dof
+  Pearson.CF=Pearson.chisq/dof
+  ODstats=cbind(Deviance,Pearson.chisq,dof,Deviance.CF,Pearson.CF)
+  return(ODstats)
+  }
+
 #===============================================================================
 #' Initial parameter values for logistic and Richards curves
 #' @description Returns crude data-driven starting values for logistic and
@@ -402,6 +429,8 @@ deltamethod=function (g, mean, cov, ses = TRUE)
   }
   else new.covar
 }
+
+
 
 
 

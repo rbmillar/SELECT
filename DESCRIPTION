@@ -1,18 +1,12 @@
 Package: SELECT
-Title: Functions for fitting size selection curves to trawl data
+Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "Russell",
-           family = "Millar",
-           role = c("aut", "cre"),
-           email = "r.millar@auckland.ac.nz",
+    person("Russell", "Millar", , "r.millar@auckland.ac.nz", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-1121-8721"))
-Description: SELECT uses the Share-Each-Lengths-Catch-Total method of Millar (1992, Estimating the size-selectivity of fishing gear by conditioning on the total catch. J. Amer. Stat. Soc. 87: 962-968.) for general purpose analysis of selectivity experiments. Logistic and Richards selection curves can be specified in addition to curves more commonly used for gillnets and hooks, including gamma, lognormal and bi-normal. Utility functions for model checking and inference are provided.
+Description: What the package does (one paragraph).
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
-LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
-Imports: 
-    msm

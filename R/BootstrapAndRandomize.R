@@ -10,13 +10,17 @@ boot.SELECT=function(Data,statistic,N,SetID="Haul",BlockID=NULL,GearID=NULL,
   if(class(z)[1]=="try-error") stop("Error running on actual data")
   #cat("Raw data output:",z,"\n")
   BootMatrix=matrix(NA,nrow=N,ncol=length(z))
-  cat(paste("Bootstrap data: Starting a",N,"resamples bootstrap...\n"))
+  cat(paste("\nBootstrap data: Starting a",N,"resamples bootstrap...\n"))
   if(is.null(SetID)) stop("SetID (set id variable) is required.")
   PBar <- txtProgressBar(min = 0, max = N, style = 3)
   for(i in 1:N) {
     if(i%%5==0) setTxtProgressBar(PBar, i)
     bootData=Dble.boot(Data,SetID,BlockID,GearID,Freqs,within.resamp)$bootData
     boot.stat=try( statistic(bootData,...) )
+    #cat("Bootstrap data output:",boot.stat,"\n")
+    if(class(boot.stat)[1]=="try-error") {
+      cat("\nError running on bootstrap",i,"data\n")
+      print(head(bootData)) }
     if(class(boot.stat)[1]!="try-error") BootMatrix[i,]=boot.stat
   }
   close(PBar)
@@ -25,6 +29,41 @@ boot.SELECT=function(Data,statistic,N,SetID="Haul",BlockID=NULL,GearID=NULL,
     cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")
   invisible(BootMatrix)
 }
+
+
+
+#' Implement permutation test
+#' @description Permutation test on data in SELECT format
+#' @export
+permute.SELECT=function (Data, statistic, N, SetID = "Haul", Freqs = c("nfine", "nwide"),...)
+{
+  z = try(statistic(Data, ...))
+  if (class(z)[1] == "try-error") 
+    stop("Error running on actual data")
+  PermMatrix = matrix(NA, nrow = N, ncol = length(z))
+  cat(paste("\nStarting on", N, "permuations...\n"))
+  if (is.null(SetID)) 
+    stop("SetID (set id variable) is required.")
+  PBar <- txtProgressBar(min = 0, max = N, style = 3)
+  for (i in 1:N) {
+    if (i%%5 == 0) 
+      setTxtProgressBar(PBar, i)
+    permData = Randomize(Data, varnames=c(SetID,Freqs))
+    perm.stat = try(statistic(permData, ...))
+    if (class(perm.stat)[1] == "try-error") {
+      cat("\nError running on permutation", i, "data\n")
+      print(head(permData))
+    }
+    if (class(perm.stat)[1] != "try-error") 
+      PermMatrix[i, ] = perm.stat
+  }
+  close(PBar)
+  cat("\nPermutations successfully completed\n")
+  if (any(is.na(PermMatrix))) 
+    cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")
+  invisible(PermMatrix)
+}
+
 
 
 
@@ -37,6 +76,12 @@ WgtAvg=function(y,w=c(0.25,0.5,0.25)) {
   wgt.y
 }
 
+#' Avoid issue with sample from a single value
+SafeSample=function(x,replace=T) {
+  if(length(x)>1) x=sample(x,replace=replace)
+  return(x)
+}
+
 
 #' Return a dataframe containing double bootstrapped raw data.
 #' @description Double bootstrap function used by boot.SELECT function
@@ -46,9 +91,9 @@ WgtAvg=function(y,w=c(0.25,0.5,0.25)) {
 #' @param SetID Name of grouping variable containing the tow/haul/set id number.
 #' Vector of same length as number of rows in Data.
 #' @param BlockID If specified, name of blocking variable.
-#' Bootstrapping is first done over blocks, and then within each block.
+#' Bootstrapping is first done over blocks, and then sets within each block.
 #' @param GearID If specified, name of the gear indicator variable.
-#' This restricts bootstrapping to within each gear and is intended to be used
+#' This restricts bootstrapping of sets to within each gear and is intended to be used
 #' for non-paired data.
 #' @param within.resamp If F, no resampling at observation level.
 #' @param smooth Smooth at within-haul phase to avoid losing degrees of freedom (from increasing number of zero freqs)
@@ -59,6 +104,7 @@ WgtAvg=function(y,w=c(0.25,0.5,0.25)) {
 
 Dble.boot=function(Data,SetID="Haul",BlockID=NULL,GearID=NULL,
                    Freqs=c("nfine","nwide"),within.resamp=T,smooth=F) {
+  Data=as.data.frame(Data) #So that code will work with a tibble
   if(smooth) w=c(1,2,1)/4
   Sets=Data[,SetID]
   uniqSets=unique(Sets)
@@ -66,25 +112,20 @@ Dble.boot=function(Data,SetID="Haul",BlockID=NULL,GearID=NULL,
   #cat("\n",nSets,"sets to be double bootstrapped")
   RanList=list(uniqSets)
 
+  #Resample the Sets, subject to GearID and BlockID where applicable
   if(is.null(BlockID)&is.null(GearID)) BootID=sample(uniqSets,nSets,replace=T)
   if(!is.null(BlockID)) { #Bootstraps over BlockID
     BlockSets=tapply(Sets,Data[,BlockID],unique)
     nBlocks=length(BlockSets)
-    #RanList=lapply(BlockSets,sample,replace=T)
     RanList=BlockSets[sample(1:nBlocks,replace=T)]
-    if(is.null(GearID)) RanList=lapply(RanList,sample,replace=T)
+    #Sample the Sets within BlockID
+    if(is.null(GearID)) RanList=lapply(RanList,SafeSample,replace=T)
     BootID=unlist(RanList) }
   if(!is.null(GearID)) { #Bootstrap within Gear
     GearSets=tapply(Sets,Data[,GearID],unique)
-    nGears=length(GearSets)
-    WkList=as.list(1:nGears)
-    for(j in 1:nGears) {
-      WkList[[j]]=lapply(RanList,function(x) x[x %in% GearSets[[j]] ])
-      WkList[[j]]=lapply(WkList[[j]],sample,replace=T)
-    }
-    BootID=unlist(WkList)
+    GearSets=lapply(GearSets,SafeSample)
+    BootID=unlist(GearSets)
   }
-
   nRanSets=length(BootID)
   BootList=as.list(1:nRanSets)
 
@@ -117,8 +158,9 @@ Dble.boot=function(Data,SetID="Haul",BlockID=NULL,GearID=NULL,
 #' @export
 #'
 
-BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025) {
-  txt=6
+BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
+                  xlab="Length (cm)",ylab="Catch proportion") {
+  txt=txt
   Preds.lower=apply(BootPreds,2,quantile,prob=eps,na.rm=T)
   Preds.upper=apply(BootPreds,2,quantile,prob=1-eps,na.rm=T)
   Pdf=data.frame(len=lenseq,pred=predn,low=Preds.lower,upp=Preds.upper)
@@ -127,7 +169,7 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025) {
     #geom_point(data=subset(Tots,subset=c(!is.na(y))),aes(x=lgth,y=y))+
     geom_line(data=Pdf,aes(len,pred))+ylim(0,1)+
     geom_ribbon(data=Pdf,aes(x=len,ymin=low,ymax=upp),alpha=0.2)+
-    xlab("Length (cm)")+ylab("Retention probability")+theme_bw()+
+    xlab(xlab)+ylab(ylab)+theme_bw()+
     theme(axis.text=element_text(size=txt),axis.title=element_text(size=txt))+
     theme(plot.margin = unit(c(0.75,0.5,0.25,0.5), "cm"))
   if(!is.null(Data)) BootGROB = BootGROB + geom_point(data=Data,aes(x=lgth,y=y))
@@ -167,13 +209,41 @@ Randomize=function(catch,varnames=c("Haul","nwide","nfine")) {
 #' @param Data Stacked matrix or dataframe of catches in long format. Data are not
 #' assumed paired, so could be different length range within each haul.
 #' @param SetID Name of grouping variable containing the tow/haul/set id number.
+#' @param Gear Name of the gear (treatment) indicator variable.
+#' @param BlockID Permutation is within blocks
+#'
+#' @return Dataframe, with randomized gear treatment.
+#' @export
+#'
+
+RandomizeLong=function(Data,SetID="Haul",Gear="Gear",BlockID=NULL) {
+  Wk=Data[,c(SetID,Gear)]
+  if(is.null(BlockID)) Wk[,"BlockID"]="All" else Wk[,"BlockID"]=Data[,BlockID]
+  Wk[,SetID]=factor(Wk[,SetID],levels=unique(Wk[,SetID])) #Preserve order
+  names(Wk)=c("SetID","Gear","BlockID")
+  PerSet=Wk %>% group_by(SetID,Gear,BlockID) %>% summarize(n=n()) %>% data.frame()
+  RanPerSet=PerSet %>% group_by(BlockID) %>%
+                 mutate(Gear=sample(Gear)) %>% data.frame()
+  RanGear=with(RanPerSet,rep(Gear,n))
+  Data[,Gear]=RanGear
+  return(Data)
+}
+
+
+
+#' Return a dataframe with permutations of haul treatment
+#' @description Randomization of haul treatments (may be more than 2)
+#'
+#' @param Data Stacked matrix or dataframe of catches in long format. Data are not
+#' assumed paired, so could be different length range within each haul.
+#' @param SetID Name of grouping variable containing the tow/haul/set id number.
 #' @param GearID Name of the gear (treatment) indicator variable.
 #'
 #' @return Dataframe, with randomized gear treatment.
 #' @export
 #'
 
-RandomizeLong=function(Data,SetID="Haul",Gear="Gear") {
+RandomizeLong231105=function(Data,SetID="Haul",Gear="Gear") {
   Wk=Data[,c(SetID,Gear)]
   Wk[,SetID]=factor(Wk[,SetID],levels=unique(Wk[,SetID])) #Preserve order
   names(Wk)=c("SetID","Gear")

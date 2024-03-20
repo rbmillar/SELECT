@@ -22,10 +22,10 @@ with lengthclass in first column. Remaining columns are raw catch frequencies}
 Vector of same length as number of rows in Data.}
 
 \item{BlockID}{If specified, name of blocking variable.
-Bootstrapping is first done over blocks, and then within each block.}
+Bootstrapping is first done over blocks, and then sets within each block.}
 
 \item{GearID}{If specified, name of the gear indicator variable.
-This restricts bootstrapping to within each gear and is intended to be used
+This restricts bootstrapping of sets to within each gear and is intended to be used
 for non-paired data.}
 
 \item{within.resamp}{If F, no resampling at observation level.}

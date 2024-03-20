@@ -4,7 +4,16 @@
 \alias{BootPlot}
 \title{Produce the bootstrap plot}
 \usage{
-BootPlot(BootPreds, lenseq, predn, Data = NULL, eps = 0.025)
+BootPlot(
+  BootPreds,
+  lenseq,
+  predn,
+  Data = NULL,
+  eps = 0.025,
+  txt = 8,
+  xlab = "Length (cm)",
+  ylab = "Catch proportion"
+)
 }
 \arguments{
 \item{BootPreds}{Matrix with bootstrap by row and fitted values at length in columns.}
