@@ -87,7 +87,7 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
     Data=fit$Data; pwr=fit$rel.power
 	  plot(lens,Data[,3]/(Data[,2]+Data[,3]),type=ifelse(AreLensUnique,"b","p"),
              ylim=c(0,1),xlab=xlab,ylab=ylab,lab=xyticks,...)
-	  lines(plotlens,phi[,2],type="l",lty=2)
+	  lines(plotlens,phi[,2],lty=2,...)
 	}
   if(print.out) {
     cat("Model fit:\n"); print(out1[1,]);
