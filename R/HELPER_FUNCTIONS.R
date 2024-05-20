@@ -250,10 +250,10 @@ PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,standardize=F
   #Plot propn retained if only two gears
   if(plot.out){
     if(length(Meshsize)==2) {
-      plot(plotlens,smatrix[,2],type="l",ylim=c(0,1),xlab=xlab,ylab=ylab,...)
+      plot(plotlens,smatrix[,2],ylim=c(0,1),xlab=xlab,ylab=ylab,...)
       abline(h=c(0.25,0.5,0.75),lty=3) }
     else {
-      matplot(plotlens,smatrix,type="l",ylim=c(0,1),xlab=xlab,ylab=ylab,...) }
+      matplot(plotlens,smatrix,ylim=c(0,1),xlab=xlab,ylab=ylab,...) }
   }
   lensmatrix=cbind(plotlens,smatrix)
   colnames(lensmatrix)=c("Length",paste0("Gear",1:length(Meshsize)))
