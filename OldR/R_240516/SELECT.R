@@ -241,7 +241,7 @@ Estimates=function(fit) {
       pars=c(-x[1]/x[2],2*(log(3))/x[2])
       names=c("L50","SR")
       varpars=deltamethod(list(~-x1/x2,~2*log(3)/x2),x,varx,ses=F)},
-    "ph.richards"={
+  "ph.richards"={
       delta=exp(x[3])
       pars=c((log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
              (log(0.75^delta/(1-0.75^delta))-log(0.25^delta/(1-0.25^delta)))/x[2],
@@ -254,12 +254,16 @@ Estimates=function(fit) {
         ~exp(x3),~exp(x4)/(1+exp(x4))),x,varx,ses=F)},
 	"re.richards"={
       delta=exp(x[3])
-      pars=c((log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
+      pars=c((log(0.25^delta/(1-0.25^delta))-x[1])/x[2],
+             (log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
+             (log(0.75^delta/(1-0.75^delta))-x[1])/x[2],
              (log(0.75^delta/(1-0.75^delta))-log(0.25^delta/(1-0.25^delta)))/x[2],
              delta)
-      names=c("L50","SR","delta")
+      names=c("L25","L50","L75","SR","delta")
       varpars=deltamethod(list(
+        ~(log(0.25^exp(x3)/(1-0.25^exp(x3)))-x1)/x2,
         ~(log(0.5^exp(x3)/(1-0.5^exp(x3)))-x1)/x2,
+        ~(log(0.75^exp(x3)/(1-0.75^exp(x3)))-x1)/x2,
         ~(log(0.75^exp(x3)/(1-0.75^exp(x3))))/x2
         -(log(0.25^exp(x3)/(1-0.25^exp(x3))))/x2,~exp(x3)),x,varx,ses=F)},
 

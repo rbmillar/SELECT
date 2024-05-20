@@ -1,0 +1,56 @@
+---
+title: "Playing around"
+output:
+  word_document: default
+  html_document: default
+---
+```{r}
+#glm(cbind(n1,n2)~lgth,family=binomial,data=Catch)
+
+var1="n1"; var2="n2"; var3="lgth"
+as.formula( paste0("cbind(",var1,",",var2,")","~",var3) )
+```
+
+
+
+# Working with character name arguments
+```{r}
+#This works
+Data=Catch %>% group_by(lgth) %>%
+  summarize(across(all_of(c("n1","n2")),sum)) %>% data.frame()
+
+#This works too
+Data=Catch %>% group_by(across("lgth")) %>%
+  summarize(across(all_of(c("n1","n2")),sum)) %>% data.frame()
+
+##Causes a warning (This warning is displayed once every 8 hours.)
+lvar="lgth"
+Data=Catch %>% group_by(across(lvar)) %>%
+  summarize(across(all_of(c("n1","n2")),sum)) %>% data.frame()
+
+##This works without a warning
+bvar="lgth"
+Data=Catch %>% group_by(across(all_of(bvar))) %>%
+  summarize(across(all_of(c("n1","n2")),sum)) %>% data.frame()
+
+##Also works
+var.names=c("lgth","n1","n2")
+Data=Catch %>% group_by(across(all_of(var.names[1]))) %>%
+  summarize(across(all_of(var.names[2:3]),sum)) %>% data.frame()
+```
+
+
+#Working with symbol arguments...in progress
+```{r}
+test1=function(x) deparse(substitute(x))
+test1(var.names)
+test1(lgth)
+
+test2=function(x) substitute (x)
+test2(c(lgth,n1,n2))
+
+
+test2=function(x) {substitute (x)}
+  
+test2(c(lgth,n1,n2))
+```

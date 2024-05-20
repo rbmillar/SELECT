@@ -16,8 +16,9 @@ output:
 #source("TrawlFuncs.R") Also included in R folder of the SELECT package
 
 #remotes::install_local("S:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT",force=T)
-remotes::install_github("rbmillar/SELECT")
-library(SELECT)
+#remotes::install_github("rbmillar/SELECT")
+
+require(SELECT)
 ```
 
 

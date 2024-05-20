@@ -36,7 +36,7 @@
   list(avg.fit=avg.fit,od=od,wgt,fits)
 }
 
-#' Fit model averaged 4th order polynomial to raw subsampled data
+#' Fit model averaged 4th order polynomial to raw subsampata
 #' @description Fit model averaged 4th order polynomial to raw subsampled data
 #'
 #' @param Catch Matrix including columns "freqC", "SFC", "freqT" and "SFT"
@@ -114,3 +114,10 @@ CalcOD=function(Df,yhat,suff.big=3) { #Assumes (propn) Df$y and Df$n exist
   list(PearsonStat,nbig)
 }
 
+calcBinomOD=function(y,yhat,n,npar,minE=1) {
+  PearsonChisq=(y-yhat)^2/(yhat*(1-yhat)/n)
+  Include=(n*yhat>minE & n*(1-yhat)>minE)
+  nLens=sum(Include)
+  OD=sum(PearsonChisq[Include])/(nLens-npar)
+  list(OD=OD,nLens=nLens)
+}  
