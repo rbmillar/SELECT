@@ -29,7 +29,7 @@ summary.SELECT=function(obj) {
 #summary(Fit1)
 
 #' @export
-plot.SELECT=function(obj) ModelCheck(obj,print.out=F)
+plot.SELECT=function(obj,...) ModelCheck(obj,print.out=F,...)
 
 #' @export
 predict.SELECT=function(obj,newdata=NULL) {

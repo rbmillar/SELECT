@@ -5,29 +5,29 @@
 #' evaluates the vector valued function `statistic`. The returned value is a
 #' nsim by length(statistic) matrix of bootstrap statistics.
 #' @export
-bootSELECT=function(obj,statistic,haul="Haul",nsim=2,
+bootSELECT=function(obj,statistic,haul=NULL,nsim=2,verbose=T,
                      block=NULL,gear=NULL,within.resamp=TRUE,...) {
+  if(is.null(haul)) stop("haul (set id variable) is required.")
   data=obj$data
   Freqs=obj$var.names[-1] #lgth is not needed
   z=try( statistic(data,...) )
   if(class(z)[1]=="try-error") stop("Error running on actual data")
-  #cat("Raw data output:",z,"\n")
   BootMatrix=matrix(NA,nrow=nsim,ncol=length(z))
-  cat(paste("\nBootstrap data: Starting a",nsim,"resamples bootstrap...\n"))
-  if(is.null(haul)) stop("haul (set id variable) is required.")
-  PBar <- txtProgressBar(min = 0, max = nsim, style = 3)
+  if(verbose) {
+    cat(paste("\nStarting a",nsim,"resamples bootstrap...\n"))
+    PBar <- txtProgressBar(min = 0, max = nsim, style = 3) }
   for(i in 1:nsim) {
-    if(i%%5==0) setTxtProgressBar(PBar, i)
+    if(verbose & i%%5==0) setTxtProgressBar(PBar, i)
     bootData=Dble.boot(data,haul,block,gear,Freqs,within.resamp)$bootData
     boot.stat=try( statistic(bootData,...) )
-    #cat("Bootstrap data output:",boot.stat,"\n")
     if(class(boot.stat)[1]=="try-error") {
       cat("\nError running on bootstrap",i,"data\n")
       print(head(bootData)) }
     if(class(boot.stat)[1]!="try-error") BootMatrix[i,]=boot.stat
   }
-  close(PBar)
-  cat("\nBootstrap successfully completed\n")
+  if(verbose) {
+    close(PBar)
+    cat("\nBootstrap successfully completed\n") }
   if(any(is.na(BootMatrix)))
     cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")
   invisible(BootMatrix)
