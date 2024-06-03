@@ -239,7 +239,8 @@ Estimates=function(fit) {
 #' @description Plot the fitted selectivity curve(s)
 #' @export
 PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,standardize=F,
-                    plot.out=T,xlab="Length (cm)",ylab="Retention curve",...) {
+                    plot.out=T,xlab="Length (cm)",ylab="Retention curve",type="l",
+                    ylim=c(0,1),...) {
   s=selncurves(fit$rtype) #Get selection curve function
   if(is.null(plotlens)) plotlens=fit$Data[,1]
   if(is.null(Meshsize)) Meshsize=fit$Meshsize
@@ -250,10 +251,10 @@ PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,standardize=F
   #Plot propn retained if only two gears
   if(plot.out){
     if(length(Meshsize)==2) {
-      plot(plotlens,smatrix[,2],ylim=c(0,1),xlab=xlab,ylab=ylab,...)
+      plot(plotlens,smatrix[,2],ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
       abline(h=c(0.25,0.5,0.75),lty=3) }
     else {
-      matplot(plotlens,smatrix,ylim=c(0,1),xlab=xlab,ylab=ylab,...) }
+      matplot(plotlens,smatrix,ylim=ylim,xlab=xlab,ylab=ylab,type=type,...) }
   }
   lensmatrix=cbind(plotlens,smatrix)
   colnames(lensmatrix)=c("Length",paste0("Gear",1:length(Meshsize)))
