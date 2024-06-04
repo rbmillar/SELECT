@@ -9,8 +9,12 @@ output:
     number_sections: yes
 ---
 
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.height=3)
+```
+
 ```{r}
-#remotes::install_github("rbmillar/SELECT")
+remotes::install_github("rbmillar/SELECT")
 require(SELECT)
 require(tidyverse)
 ```
