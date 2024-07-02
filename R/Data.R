@@ -55,6 +55,7 @@
 #Counts=read.table("../inst/extdata/holt.dat",head=F);
 #Meshsize=c(13.5,14,14.8,15.4,15.9,16.6,17.8,19)
 #Holt=list(Counts=Counts,Meshsize=Meshsize)
+#names(Holt$Counts)=c("lgth",paste0("M",Meshs))
 #save(Holt,file="../data/Holt.RData")
 
 #' Gillnet data

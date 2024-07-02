@@ -1,5 +1,5 @@
-## Functions to fit SELECT models, including GAMs and model-averaged poly
-# SELECT, GAM & QUARTIC
+## Functions to fit SELECT models, including spline and model-averaged poly
+# SELECT, splineSELECT & polySELECT
 
 #===============================================================================
 #' Fit selection curves to fishing gears using the SELECT method.
@@ -22,12 +22,13 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
   rtype=paste0(dtype,".",stype)
   r=propncurves(rtype) #Get propn catch curve function
   nGears=length(var.names)-1
-  GearNames=paste0("n",1:nGears)
-  Data=data[,var.names]
-  colnames(Data)=c("lgth",GearNames)
-  if(!is.null(q.names)) Data[,-1] = Data[,-1]/data[,q.names]
-  if(useTots) Data=Data %>% group_by(lgth) %>%
-    summarize(across(all_of(GearNames),sum)) %>% data.frame()
+  #Data=data[,var.names]
+  #GearNames=paste0("n",1:nGears)
+  #colnames(Data)=c("lgth",GearNames)
+  #if(!is.null(q.names)) Data[,-1] = Data[,-1]/data[,q.names]
+  #if(useTots) Data=Data %>% group_by(lgth) %>%
+  #  summarize(across(all_of(GearNames),sum)) %>% data.frame()
+  Data=Raw2Tots(data,var.names,q.names=q.names,useTots=useTots)
   Counts=Data[,-1]
   Const=mchoose(Counts,log=T) #Constant for log-likelihoods
   designTypes=c("relative","covered codend","paired haul","paired haul")
@@ -98,15 +99,15 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
 #'
 #'
 #' @export
-GAM=function(data,var.names,q.names=NULL,useTots=TRUE,
+SplineSELECT=function(data,var.names,q.names=NULL,useTots=TRUE,
                  bs="cr",k=5,sp=NULL,quasi=FALSE,rm.zeros=TRUE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
-  if(!is.null(scale.names) & typeof(scale.names)!="character")
-    stop('SELECT errror \n Scaling variable names must be character')
-  Data=Raw2Tots(var.names,data,q.names,useTots)
+  if(!is.null(q.names) & typeof(q.names)!="character")
+    stop('SELECT errror \n Sampling fraction variable names must be character')
+  Data=Raw2Tots(data,var.names,q.names=q.names,useTots=useTots)
   vn=var.names
-  formla=as.formula( paste0("cbind(",vn[2],",",vn[3],")","~s(",vn[1],",bs=bs,k=k)") )
+  formla=as.formula( paste0("cbind(",vn[3],",",vn[2],")","~s(",vn[1],",bs=bs,k=k)") )
   if(rm.zeros) Data=Data[Data[,2]+Data[,3]>0,]
   fam=ifelse(quasi,"quasibinomial","binomial")
   GamFit=gam(formla,family=fam,sp=sp,data=Data)
@@ -128,7 +129,7 @@ GAM=function(data,var.names,q.names=NULL,useTots=TRUE,
 #'
 #' @return List containing fitted values, overdispersion, wgt and dredge averaged fit.
 #' @export
-QUARTIC=function(Catch,vars=c("lgth","nC","nT"),Quasi=F,wgt="AICc",All=TRUE) {
+PolySELECT=function(Catch,vars=c("lgth","nC","nT"),Quasi=F,wgt="AICc",All=TRUE) {
   if(wgt!="AICc") wgt="AIC" #Only two possibilities for now
   if(All) Sub=expression(eval(TRUE))
   if(!All) Sub=expression( dc(I(x^0),x,I(x^2),I(x^3),I(x^4)) )
@@ -151,3 +152,38 @@ QUARTIC=function(Catch,vars=c("lgth","nC","nT"),Quasi=F,wgt="AICc",All=TRUE) {
   avg.fit=model.avg(fits,fit = T)
   list(avg.fit=avg.fit,od=od,wgt,fits)
 }
+
+
+#===============================================================================
+## Log-likelihoods from full, null and fixed models
+
+#' Evaluate log-likelihoods from full, null and fixed models
+#' @export
+LOGLIKS=function(data,var.names,q.names=NULL,useTots=TRUE,fixed=NULL) {
+  if(typeof(var.names)!="character")
+    stop('SELECT errror message: \n Variable names must be character')
+  if(!is.null(q.names) & typeof(q.names)!="character")
+    stop('SELECT errror message: \n Scaling variable names must be character')
+  Data=Raw2Tots(data,var.names,q.names=q.names,useTots=useTots)
+  Counts=Data[,-1]
+  Const=mchoose(Counts,log=T) #Constant for log-likelihoods
+  CountTotals=apply(Counts,1,sum,na.rm=TRUE)
+  CountTotals=ifelse(CountTotals==0,Inf,CountTotals)
+  CountPropns=Counts/CountTotals
+  #Full fit llhood
+  ll.fullfit=Const+sum(Counts[Counts>0]*log(CountPropns[Counts>0]),na.rm=TRUE)
+  #Null fit llhood
+  GearTotals=apply(Counts,2,sum,na.rm=TRUE)
+  GearPropns=GearTotals/sum(GearTotals)
+  ll.nullfit=Const+sum(GearTotals*log(GearPropns),na.rm=TRUE)
+  #Null fit with fixed power llhood
+  nGears=length(var.names)-1
+  if(is.null(fixed)) fixed=rep(1,nGears)/nGears
+  if(length(fixed)!=nGears | sum(fixed)!=1) {
+    cat("\nError: fixed must be length",nGears,"and sum to unity\n")
+    ll.nullfix=NA }
+  else
+    ll.nullfix=Const+sum(GearTotals*log(fixed),na.rm=TRUE)
+  list(full=ll.fullfit,null=ll.nullfit,fixed=ll.nullfix)
+}
+

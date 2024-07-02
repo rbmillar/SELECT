@@ -5,21 +5,21 @@
 #' evaluates the vector valued function `statistic`. The returned value is a
 #' nsim by length(statistic) matrix of bootstrap statistics.
 #' @export
-bootSELECT=function(obj,statistic,haul=NULL,nsim=2,verbose=T,
+bootSELECT=function(data,var.names,statistic,haul=NULL,nsim=2,verbose=T,
                      block=NULL,gear=NULL,within.resamp=TRUE,...) {
   if(is.null(haul)) stop("haul (set id variable) is required.")
-  data=obj$data
-  Freqs=obj$var.names[-1] #lgth is not needed
-  z=try( statistic(data,...) )
+  #data=obj$data; var.names=obj$var.names; z=try( statistic(data,...) )
+  z=try( statistic(data,var.names,...) )
   if(class(z)[1]=="try-error") stop("Error running on actual data")
   BootMatrix=matrix(NA,nrow=nsim,ncol=length(z))
+  Freqs=var.names[-1] #lgth is not needed
   if(verbose) {
     cat(paste("\nStarting a",nsim,"resamples bootstrap...\n"))
     PBar <- txtProgressBar(min = 0, max = nsim, style = 3) }
   for(i in 1:nsim) {
     if(verbose & i%%5==0) setTxtProgressBar(PBar, i)
     bootData=Dble.boot(data,haul,block,gear,Freqs,within.resamp)$bootData
-    boot.stat=try( statistic(bootData,...) )
+    boot.stat=try( statistic(bootData,var.names,...) )
     if(class(boot.stat)[1]=="try-error") {
       cat("\nError running on bootstrap",i,"data\n")
       print(head(bootData)) }
@@ -39,11 +39,11 @@ bootSELECT=function(obj,statistic,haul=NULL,nsim=2,verbose=T,
 #' @description Permutes data in SELECT format and returns the value of the user
 #' supplied function`statistic`in a nsim by length(statistic) matrix
 #' @export
-permSELECT=function (obj,statistic,haul="Haul", nsim=2,...)
+permSELECT=function (data,var.names,statistic,haul="haul", nsim=2,
+                     paired=TRUE,gear=NULL,block=NULL,...)
 {
-  data=obj$data
-  Freqs=obj$var.names[-1]
-  z = try(statistic(data, ...))
+  #data=obj$data; var.names=obj$var.names; z=try( statistic(data,...) )
+  z = try(statistic(data,var.names,...))
   if (class(z)[1] == "try-error")
     stop("Error running statistic on actual data")
   PermMatrix = matrix(NA, nrow = nsim, ncol = length(z))
@@ -55,8 +55,9 @@ permSELECT=function (obj,statistic,haul="Haul", nsim=2,...)
   for (i in 1:nsim) {
     if (i%%5 == 0)
       setTxtProgressBar(PBar, i)
-    permData = Randomize(data, varnames=c(haul,Freqs))
-    perm.stat = try(statistic(permData, ...))
+    permData = Randomize(data,freq.names=Freqs,haul=haul,
+                         paired=paired,gear=gear,block=block,...)
+    perm.stat = try(statistic(permData,var.names,...))
     if (class(perm.stat)[1] == "try-error") {
       cat("\nError running on permutation", i, "data\n")
       print(head(permData))
@@ -183,31 +184,68 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 }
 
 
-
 #' Return a permuted SELECT format dataframe
-#' @description Randomization of gear type within each haul
+#' @description Randomization of gear type within each haul.
+#' Currently limited to two gears.
 #'
-#' @param catch Stacked matrix or dataframe of catches in SELECT format
-#' @param varnames Length-3 vector containing name of haulID variable, and 2 catch freq vars
+#' @param data Matrix or dataframe of catches in SELECT format
+#' @param freq.names Character vector giving the names of the two catch frequency variables
+#' @param haul Character value giving the haul variable name
+#' @paired Logical. True if the data are paired
+#' @block Character value giving blocking variable. Only used if `paired=FALSE`
 #'
 #' @return Dataframe, with randomized gear treatment within each haul
 #' @export
 #'
 
-Randomize=function(catch,varnames=c("Haul","nwide","nfine")) {
-  Tow=catch[,varnames[1]]
-  uniqTows=unique(Tow)
-  nTows=length(uniqTows)
-  #cat("\n",nTows,"hauls to be randomized")
-  RanCatchList=as.list(1:nTows)
-  for(j in 1:nTows) {
-    RanCatchList[[j]] = catch %>% filter(Tow==uniqTows[j])
-    RanCatchList[[j]][,varnames[2:3]] <- RanCatchList[[j]][,varnames[sample(2:3)]]
+Randomize=function(data,freq.names=c("n1","n2"),haul="haul",q.names=NULL,
+                   paired=TRUE,gear=NULL,block=NULL) {
+  if(paired==T&(!is.null(block)|!is.null(gear))) cat("\n NOTE: gear and block variable will be ignored since permutation is within gear pairs\n")
+  if(paired==F&is.null(gear)) Stop("\n ERROR: gear name is required since data are unpaired and each row must be identified by gear type \n")
+  Wk=data.frame(data)
+  Wk$haul=as.factor(Wk[,haul])
+  nHauls=length(unique(Wk$haul))
+  if(paired) {
+    uniqHauls=unique(Wk[,haul])
+    permList=as.list(1:nHauls)
+    for(j in 1:nHauls) {
+      permList[[j]] = Wk %>% filter(haul==uniqHauls[j])
+      jPerm=sample(1:2)
+      permList[[j]][,freq.names] <- permList[[j]][,freq.names[jPerm]]
+      if(!is.null(q.names))
+        permList[[j]][,q.names] <- permList[[j]][,q.names[jPerm]]
+    }
+  data=bind_rows(permList)
   }
-  ran.catch=as.data.frame(bind_rows(RanCatchList))
-  return(as.data.frame(ran.catch))
+  if(!paired) {
+    Wk$haul=as.numeric(Wk$haul)
+    Wk$gear=Wk[,gear]
+    if(is.null(block)) Wk$block="All" else Wk$block=data[,block]
+    haulgear= Wk %>% group_by(block,haul) %>%
+      summarize(haulgear=unique(gear), .groups = "drop_last")
+    if(nrow(haulgear)!=nhauls)
+      stop("Permutation ERROR: Check data for multiple gear types in a haul")
+    permgear = haulgear %>% slice_sample(n=nhauls) %>% pull(haulgear)
+    #print(permgear)
+  	permuted.gear=permgear[Wk$haul]
+    #print(permuted.gear)
+    permuted.obs=(Wk$gear!=permuted.gear)
+    data[permuted.obs,freq.names]=data[permuted.obs,rev(freq.names)]
+    if(!is.null(q.names))
+      data[permuted.obs,q.names]=data[permuted.obs,rev(q.names)]
+  }
+  return(as.data.frame(data))
 }
 
+
+permPval=function(ObsStat,PermOut,signif="greater",includeObs=FALSE) {
+  nsim=length(PermOut)
+  permDiff=PermOut-ObsStat
+  permSum=ifelse(signif=="greater",sum(permDiff>=0),sum(permDiff<=0))
+  if(!includeObs) permPval=permSum/nsim else
+    permPval=(permSum+1)/(nsim+1)
+  return(permPval)
+}
 
 #' Return a dataframe with permutations of haul treatment
 #' @description Randomization of haul treatments (may be more than 2)
@@ -235,6 +273,33 @@ RandomizeLong=function(Data,haul="Haul",Gear="Gear",BlockID=NULL) {
   return(Data)
 }
 
+#######################
+## Deprecated functions
+#######################
+
+#' Return a permuted SELECT format dataframe
+#' @description Randomization of gear type within each haul
+#'
+#' @param catch Stacked matrix or dataframe of catches in SELECT format
+#' @param varnames Length-3 character vector containing name of haulID variable, and 2 catch freq vars
+#'
+#' @return Dataframe, with randomized gear treatment within each haul
+#' @export
+#'
+
+Randomize240613=function(catch,varnames=c("Haul","nwide","nfine")) {
+  Tow=catch[,varnames[1]]
+  uniqTows=unique(Tow)
+  nTows=length(uniqTows)
+  #cat("\n",nTows,"hauls to be randomized")
+  RanCatchList=as.list(1:nTows)
+  for(j in 1:nTows) {
+    RanCatchList[[j]] = catch %>% filter(Tow==uniqTows[j])
+    RanCatchList[[j]][,varnames[2:3]] <- RanCatchList[[j]][,varnames[sample(2:3)]]
+  }
+  ran.catch=as.data.frame(bind_rows(RanCatchList))
+  return(as.data.frame(ran.catch))
+}
 
 
 #' Return a dataframe with permutations of haul treatment

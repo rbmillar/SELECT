@@ -392,17 +392,18 @@ delta.method=function (g, mean, cov, ses = TRUE)
 #===============================================================================
 #' Convert raw counts by haul to totals, and adjusts for any subsampling
 #' @export
-Raw2Tots=function(data,var.names,q.names=NULL,scale.names=NULL) {
-  if(!is.null(q.names) & !is.null(scale.names))
-    stop('Raw2Tots error: \n Do not specify both q.names and scale.names ')
-  Data=data[,var.names]
-  if(!is.null(scale.names)) Data[,-1] = Data[,-1]*data[,scale.names]
-  if(!is.null(q.names)) Data[,-1] = Data[,-1]/data[,q.names]
-  Data=Data %>% group_by(across(all_of(var.names[1]))) %>%
-    summarize(across(all_of(var.names[-1]),sum)) %>% data.frame()
+Raw2Tots=function(data,var.names,q.names=NULL,useTots=T) {
+  Counts=data[,var.names[-1]]
+  #For unpaired data q may be zero if count is 0. Need to avoid divide by zero
+  if(!is.null(q.names)) {
+    Q=data[,q.names]
+    Q[Q==0]=1e-12
+    data[,var.names[-1]]=data[,var.names[-1]]/Q }
+  if(useTots) {
+    Data=data[,var.names] %>% group_by(across(all_of(var.names[1]))) %>%
+      summarize(across(all_of(var.names[-1]),sum)) %>% data.frame() }
   Data
 }
-
 
 #===============================================================================
 #' Put length-freqs stacked by gear (and/or other variables) into SELECT format.
@@ -419,7 +420,7 @@ Raw2Tots=function(data,var.names,q.names=NULL,scale.names=NULL) {
 #' @export
 #'
 
-SELECT_FORMAT=function(Df,by=c("TowID","lgth"),gear="gear",freq="freq") {
+SELECT_FORMAT240614=function(Df,by=c("TowID","lgth"),gear="gear",freq="freq") {
   wk=split(Df,Df[,gear])
   ngear=length(wk)
   nby=length(by)
@@ -429,9 +430,23 @@ SELECT_FORMAT=function(Df,by=c("TowID","lgth"),gear="gear",freq="freq") {
     for(k in 3:ngear)
       Stacked.df=full_join(Stacked.df,wk[[k]][,c(by,freq)],by=by) }
   names(Stacked.df)[nby+(1:ngear)]=freq.names
-  #Reshuffle columns to length is in column 1
+  #Reshuffle columns so that length is in column 1
   Stacked.df=Stacked.df[,c(nby+(0:ngear),1:(nby-1))]
   Stacked.df[is.na(Stacked.df)] <- 0
   Stacked.df
 }
 
+SELECT_FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NULL,
+                       paired=T) {
+  Wk=Df
+  if(!paired) Wk=Wk |> mutate(uniqRowID=row_number())
+  if(!is.null(q.name)) freq=c(freq,q.name)
+  namePrefix=c("n","q")[1:length(freq)]
+  Wk=Wk |> group_by(across(all_of(by))) |>
+           pivot_wider(names_from=all_of(gear), #names_prefix=namePrefix,
+                      values_from=all_of(freq), values_fill=0, names_sep="") |>
+           select(-uniqRowID)
+  if(!paired) Wk[,gear]=Df[,gear]
+  Wk
+}
+#X=SELECT_FORMAT(Df,by=c("Haul","lgth"),gear="Gear",freq="n",q.name="q"); head(X)
