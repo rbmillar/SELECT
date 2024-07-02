@@ -60,7 +60,7 @@
 
 #' Gillnet data
 #'
-#' Counts from aight mesh gang of gillnets
+#' Counts from eight mesh gang of gillnets
 #'
 #' @docType data
 #'
@@ -77,3 +77,25 @@
 #' @examples
 #' data(Pope)
 "Pope"
+
+
+#===============================================================================
+#' Permuation example data
+#'
+#' Simulated catch data from gears A and B. Used in Appendix 2 of Millar (2024) to
+#' demonstrate use of permutation testing.
+#'
+#' @docType data
+#'
+#' @usage data(Holt)
+#'
+#' @format dataframe `Catch` with 1000 rows and 4 columns.
+#'
+#' @keywords datasets
+#'
+#' @references Millar R. B. (2024). Incorrect inference from size-selectivity studies
+#' due to misuse of bootstrap intervals.
+
+#' @examples
+#' data(Perm)
+"Perm"
