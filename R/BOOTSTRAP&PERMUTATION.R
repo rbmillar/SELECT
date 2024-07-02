@@ -191,8 +191,8 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 #' @param data Matrix or dataframe of catches in SELECT format
 #' @param freq.names Character vector giving the names of the two catch frequency variables
 #' @param haul Character value giving the haul variable name
-#' @paired Logical. True if the data are paired
-#' @block Character value giving blocking variable. Only used if `paired=FALSE`
+#' @param paired Logical. True if the data are paired
+#' @param block Character value giving blocking variable. Only used if `paired=FALSE`
 #'
 #' @return Dataframe, with randomized gear treatment within each haul
 #' @export
@@ -237,7 +237,8 @@ Randomize=function(data,freq.names=c("n1","n2"),haul="haul",q.names=NULL,
   return(as.data.frame(data))
 }
 
-
+#' @export
+#'
 permPval=function(ObsStat,PermOut,signif="greater",includeObs=FALSE) {
   nsim=length(PermOut)
   permDiff=PermOut-ObsStat

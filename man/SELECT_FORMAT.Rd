@@ -2,11 +2,16 @@
 % Please edit documentation in R/HELPER_FUNCTIONS.R
 \name{SELECT_FORMAT}
 \alias{SELECT_FORMAT}
-\title{Put length-freqs stacked by gear (and/or other variables) into SELECT format.
-Default assumes input df has columns named "TowID", "lgth", "freq" and "gear"
-where gear may be multilevel.}
+\title{To be updated...}
 \usage{
-SELECT_FORMAT(Df, by = c("TowID", "lgth"), gear = "gear", freq = "freq")
+SELECT_FORMAT(
+  Df,
+  by = c("haul", "lgth"),
+  gear = "gear",
+  freq = "freq",
+  q.name = NULL,
+  paired = T
+)
 }
 \arguments{
 \item{by}{Character vector with names of the variables to join by,

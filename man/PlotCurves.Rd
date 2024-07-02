@@ -13,6 +13,8 @@ PlotCurves(
   plot.out = T,
   xlab = "Length (cm)",
   ylab = "Retention curve",
+  type = "l",
+  ylim = c(0, 1),
   ...
 )
 }

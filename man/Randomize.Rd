@@ -4,16 +4,31 @@
 \alias{Randomize}
 \title{Return a permuted SELECT format dataframe}
 \usage{
-Randomize(catch, varnames = c("Haul", "nwide", "nfine"))
+Randomize(
+  data,
+  freq.names = c("n1", "n2"),
+  haul = "haul",
+  q.names = NULL,
+  paired = TRUE,
+  gear = NULL,
+  block = NULL
+)
 }
 \arguments{
-\item{catch}{Stacked matrix or dataframe of catches in SELECT format}
+\item{data}{Matrix or dataframe of catches in SELECT format}
 
-\item{varnames}{Length-3 vector containing name of haulID variable, and 2 catch freq vars}
+\item{freq.names}{Character vector giving the names of the two catch frequency variables}
+
+\item{haul}{Character value giving the haul variable name}
+
+\item{paired}{Logical. True if the data are paired}
+
+\item{block}{Character value giving blocking variable. Only used if \code{paired=FALSE}}
 }
 \value{
 Dataframe, with randomized gear treatment within each haul
 }
 \description{
-Randomization of gear type within each haul
+Randomization of gear type within each haul.
+Currently limited to two gears.
 }

@@ -4,7 +4,7 @@
 \alias{Raw2Tots}
 \title{Convert raw counts by haul to totals, and adjusts for any subsampling}
 \usage{
-Raw2Tots(data, var.names, q.names = NULL, scale.names = NULL)
+Raw2Tots(data, var.names, q.names = NULL, useTots = T)
 }
 \description{
 Convert raw counts by haul to totals, and adjusts for any subsampling

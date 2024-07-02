@@ -4,7 +4,17 @@
 \alias{permSELECT}
 \title{Permute catch data}
 \usage{
-permSELECT(obj, statistic, haul = "Haul", nsim = 2, ...)
+permSELECT(
+  data,
+  var.names,
+  statistic,
+  haul = "haul",
+  nsim = 2,
+  paired = TRUE,
+  gear = NULL,
+  block = NULL,
+  ...
+)
 }
 \description{
 Permutes data in SELECT format and returns the value of the user

@@ -5,10 +5,12 @@
 \title{Bootstrap catch data}
 \usage{
 bootSELECT(
-  obj,
+  data,
+  var.names,
   statistic,
-  haul = "Haul",
+  haul = NULL,
   nsim = 2,
+  verbose = T,
   block = NULL,
   gear = NULL,
   within.resamp = TRUE,
