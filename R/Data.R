@@ -87,15 +87,15 @@
 #'
 #' @docType data
 #'
-#' @usage data(Holt)
+#' @usage data(SimCatch)
 #'
-#' @format dataframe `Catch` with 1000 rows and 4 columns.
+#' @format dataframe `SimCatch` with 1000 rows and 4 columns.
 #'
 #' @keywords datasets
 #'
 #' @references Millar R. B. (2024). Incorrect inference from size-selectivity studies
-#' due to misuse of bootstrap intervals.
+#' due to widespread misuse of bootstrap intervals.
 
 #' @examples
-#' data(Perm)
-"Perm"
+#' data(SimCatch)
+"SimCatch"
