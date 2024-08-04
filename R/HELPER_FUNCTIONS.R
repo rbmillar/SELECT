@@ -406,7 +406,7 @@ Raw2Tots=function(data,var.names,q.names=NULL,useTots=T) {
 }
 
 #===============================================================================
-#' To be updated...
+# Description to be update
 #' @description Change long format to SELECT format
 #'
 #' @param by Character vector with names of the variables to join by,
@@ -420,14 +420,13 @@ Raw2Tots=function(data,var.names,q.names=NULL,useTots=T) {
 
 SELECT_FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NULL,
                        paired=T) {
-  Wk=Df
-  if(!paired) Wk=Wk |> mutate(uniqRowID=row_number())
-  if(!is.null(q.name)) freq=c(freq,q.name)
-  namePrefix=c("n","q")[1:length(freq)]
-  Wk=Wk |> group_by(across(all_of(by))) |>
-           pivot_wider(names_from=all_of(gear), #names_prefix=namePrefix,
-                      values_from=all_of(freq), values_fill=0, names_sep="") |>
-           select(-uniqRowID)
+  UniqueCheck=Df|>group_by(across(all_of(c(by,gear))))|> summarize(m=n(),.groups="keep")
+  if(max(UniqueCheck$m)>1)
+     stop("\nInput data error: Multiple rows for a unique combination of ",byAll,"\n")
+  if(is.null(q.name)) values=freq else values=c(freq,q.name)
+  Wk=Df |> select(all_of( c(by,gear,values) ))
+  Wk = Wk |>   pivot_wider(names_from=all_of(gear), #names_prefix=namePrefix,
+                      values_from=all_of(values), values_fill=0, names_sep="")
   if(!paired) Wk[,gear]=Df[,gear]
   Wk
 }

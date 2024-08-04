@@ -223,9 +223,9 @@ Randomize=function(data,freq.names=c("n1","n2"),haul="haul",q.names=NULL,
     if(is.null(block)) Wk$block="All" else Wk$block=data[,block]
     haulgear= Wk %>% group_by(block,haul) %>%
       summarize(haulgear=unique(gear), .groups = "drop_last")
-    if(nrow(haulgear)!=nhauls)
+    if(nrow(haulgear)!=nHauls)
       stop("Permutation ERROR: Check data for multiple gear types in a haul")
-    permgear = haulgear %>% slice_sample(n=nhauls) %>% pull(haulgear)
+    permgear = haulgear %>% slice_sample(n=nHauls) %>% pull(haulgear)
     #print(permgear)
   	permuted.gear=permgear[Wk$haul]
     #print(permuted.gear)
