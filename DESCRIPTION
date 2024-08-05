@@ -1,6 +1,6 @@
 Package: SELECT
 Title: Analysis of size-selectivity data
-Version: 1.0.0.0
+Version: 1.0.0.1
 Authors@R: 
     person("Russell", "Millar", , "r.millar@auckland.ac.nz", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-1121-8721"))
@@ -10,3 +10,5 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
+Imports: 
+    tidyverse
