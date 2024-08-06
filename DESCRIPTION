@@ -1,6 +1,6 @@
 Package: SELECT
 Title: Analysis of size-selectivity data
-Version: 1.0.0.1
+Version: 1.0.0.2
 Authors@R: 
     person("Russell", "Millar", , "r.millar@auckland.ac.nz", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-1121-8721"))
