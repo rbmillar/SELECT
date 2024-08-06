@@ -1,6 +1,6 @@
 ## Model evaluation and helper functions
 # ModelCheck, Estimates, PlotCurves
-# nllhood, calcOD, StartValues, mchoose, deltamethod, Raw2Tots & SELECT_FORMAT
+# nllhood, calcOD, StartValues, mchoose, deltamethod, Raw2Tots & SELECT.FORMAT
 
 #===============================================================================
 #' Provide a diagnostic summary of the SELECT model fit
@@ -406,19 +406,17 @@ Raw2Tots=function(data,var.names,q.names=NULL,useTots=T) {
 }
 
 #===============================================================================
-# Description to be update
+#' Change long format to SELECT format
 #' @description Change long format to SELECT format
-#'
 #' @param by Character vector with names of the variables to join by,
 #' typically TowID and lgth
 #' @param gear Character giving gear variable name
 #' @param freq Character giving frequency variable name
-#'
+#' @param q.name Name of sampling fraction variable
+#' @param paired Are data paired within gear?
 #' @return Dataframe, in SELECT format
 #' @export
-#'
-
-SELECT_FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NULL,
+SELECT.FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NULL,
                        paired=T) {
   UniqueCheck=Df|>group_by(across(all_of(c(by,gear))))|> summarize(m=n(),.groups="keep")
   if(max(UniqueCheck$m)>1)
@@ -430,4 +428,3 @@ SELECT_FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NUL
   if(!paired) Wk[,gear]=Df[,gear]
   Wk
 }
-#X=SELECT_FORMAT(Df,by=c("Haul","lgth"),gear="Gear",freq="n",q.name="q"); head(X)

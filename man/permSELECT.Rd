@@ -9,8 +9,8 @@ permSELECT(
   var.names,
   statistic,
   haul = "haul",
+  paired = NULL,
   nsim = 2,
-  paired = TRUE,
   gear = NULL,
   block = NULL,
   ...
