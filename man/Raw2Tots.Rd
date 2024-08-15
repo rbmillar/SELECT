@@ -4,8 +4,35 @@
 \alias{Raw2Tots}
 \title{Convert raw counts by haul to totals, and adjusts for any subsampling}
 \usage{
-Raw2Tots(data, var.names, q.names = NULL, useTots = T)
+Raw2Tots(
+  data,
+  var.names,
+  q.names = NULL,
+  Tots = TRUE,
+  q.ODadjust = TRUE,
+  useTots = NULL
+)
+}
+\arguments{
+\item{data}{Catch data in SELECT format}
+
+\item{var.names}{Character vector giving the variable names.
+The first name is always the length variable,
+followed by names of the raw catch variables. E.g., c("lgth","nA","nB")}
+
+\item{Tots}{Total the (adjusted) catch over all tows?}
+
+\item{q.ODadjust}{Over-dispersion adjustment. If TRUE (default) and the catches
+have been adjusted upwards due to sampling, then the summed catch numbers are
+adjusted downwards to have total equal to the actual number of fish measured.
+This does not change catch share proportions, but will reduce potential
+overfitting of polynomial and spline curves due to overdispersion.}
+
+\item{q.name}{Character vector giving the names of sampling fractions, if any.}
+}
+\value{
+dataframe
 }
 \description{
-Convert raw counts by haul to totals, and adjusts for any subsampling
+Adjusts for any subsampling and (by default) sum over tows.
 }

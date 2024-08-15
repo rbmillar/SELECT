@@ -6,6 +6,11 @@
 #' @description SELECT is an acronym for the Share Each LEngths Catch Total method
 #' of Millar (1992). SELECT is a general statistical framework to  estimate the
 #' selectivity of trawls, hooks and gillnets from experimental data.
+#' @param data Catch data in SELECT format
+#' @param var.names Character vector giving the variable names.
+#' The first name is always the length variable,
+#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
+#' @param q.name Character vector giving the names of sampling fractions, if any.
 #' @references Millar, R. B. (1992).
 #' Estimating the size-selectivity of fishing gear by conditioning on the
 #' total catch. Journal of the American Statistical Association. 87: 962-968.
@@ -88,24 +93,36 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
 #' Fit smooth function to catch share data
 #' @description Fit spline to catch share - description needs updating
 #'
-#' @param Catch Matrix with data in first three columns
+#' @param data Catch data in SELECT format
+#' @param var.names Character vector giving the variable names.
+#' The first name is always the length variable,
+#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
+#' @param q.name Character vector giving the names of sampling fractions, if any.
+#' @param Tots Total the (adjusted) catch over all tows?
+#' @param q.ODadjust Over-dispersion adjustment. If TRUE (default) and the catches
+#' have been adjusted upwards due to sampling, then the summed catch numbers are
+#' adjusted downwards to have total equal to the actual number of fish measured.
+#' This does not change catch share proportions, but will reduce potential
+#' overfitting of polynomial and spline curves due to overdispersion.
 #' @param quasi Logical, whether to apply quasibinomial correction
-#' @param bs Choice of smoother
-#' @param k Dimension of the basis. k=3 in minimum for natural cubic spline.
-#' @param m Order of the penalty
+#' @param bs Choice of smoother. Default is natural cubic spline.
+#' @param k Dimension of the basis. k=3 is the minimum for natural cubic spline.
 #' @param sp Supplied smoothing parameter
+#' @param rm.zeros If TRUE, removes zero lengthclasses with zero catch.
+#' This eliminates dependency of the knot locations on arbitrary null catch lengthclasses.
+#'
 #'
 #' @return List containing fitted model.
 #'
 #'
 #' @export
-SplineSELECT=function(data,var.names,q.names=NULL,useTots=TRUE,
+SplineSELECT=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=T,
                  bs="cr",k=5,sp=NULL,quasi=FALSE,rm.zeros=TRUE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
     stop('SELECT errror \n Sampling fraction variable names must be character')
-  Data=Raw2Tots(data,var.names,q.names=q.names,useTots=useTots)
+  Data=Raw2Tots(data,var.names,q.names=q.names,Tots=Tots,q.ODadjust=q.ODadjust)
   vn=var.names
   formla=as.formula( paste0("cbind(",vn[3],",",vn[2],")","~s(",vn[1],",bs=bs,k=k)") )
   if(rm.zeros) Data=Data[Data[,2]+Data[,3]>0,]
@@ -115,12 +132,12 @@ SplineSELECT=function(data,var.names,q.names=NULL,useTots=TRUE,
 }
 
 #===============================================================================
-## Weighted polynomial functions - needs to be updated (20/5/2024)
+## Weighted polynomial functions - could improve to use lgth var name (16/8/24)
 
 #' Fit model averaged 4th order polynomial
 #' @description Fit model averaged 4th order polynomial
 #'
-#' @param Catch Matrix with data in first three columns
+#' @param data Matrix with data in first three columns
 #' @param vars Column variable names if not vars=c("lgth","nC","nT")
 #' @param plens If specified, lengths at which to calculated fitted values.
 #' @param Quasi Logical, whether to apply quasibinomial correction
@@ -129,18 +146,26 @@ SplineSELECT=function(data,var.names,q.names=NULL,useTots=TRUE,
 #'
 #' @return List containing fitted values, overdispersion, wgt and dredge averaged fit.
 #' @export
-PolySELECT=function(Catch,vars=c("lgth","nC","nT"),Quasi=F,wgt="AICc",All=TRUE) {
+PolySELECT=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=T,
+                       quasi=F,wgt="AICc",All=TRUE) {
+  if(typeof(var.names)!="character")
+    stop('SELECT errror: \n Variable names must be character')
+  if(!is.null(q.names) & typeof(q.names)!="character")
+    stop('SELECT errror \n Sampling fraction variable names must be character')
+  Data=Raw2Tots(data,var.names,q.names=q.names,Tots=Tots,q.ODadjust=q.ODadjust)
   if(wgt!="AICc") wgt="AIC" #Only two possibilities for now
   if(All) Sub=expression(eval(TRUE))
   if(!All) Sub=expression( dc(I(x^0),x,I(x^2),I(x^3),I(x^4)) )
-  Catch$x=Catch[,vars[1]]
-  Catch$n=Catch[,vars[2]]+Catch[,vars[3]]
-  Catch$y=Catch[,vars[3]]/Catch$n
-  Catch=Catch[!is.na(Catch$y),]
+  vn=var.names
+  Catch=Data
+  Catch$x=Catch[,vn[1]]
+  Catch$n=Catch[,vn[2]]+Catch[,vn[3]]
+  Catch$y=Catch[,vn[3]]/Catch$n
+  Catch$y[Catch$n==0]=0
   od=1
   fit4=glm(y~I(x^0)+x+I(x^2)+I(x^3)+I(x^4)-1,family=binomial,weights=n,data=Catch)
-  if(!Quasi) {  fits=dredge(fit4 ,rank=wgt, subset=Sub) }
-  if(Quasi) {
+  if(!quasi) {  fits=dredge(fit4 ,rank=wgt, subset=Sub) }
+  if(quasi) {
     qfit4=glm(y~I(x^0)+x+I(x^2)+I(x^3)+I(x^4)-1,family=quasibinomial,weights=n,
               data=Catch)
     od=summary(qfit4)$dispersion

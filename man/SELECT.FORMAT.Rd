@@ -26,7 +26,7 @@ typically TowID and lgth}
 \item{paired}{Are data paired within gear?}
 }
 \value{
-Dataframe, in SELECT format
+dataframe, in SELECT format
 }
 \description{
 Change long format to SELECT format

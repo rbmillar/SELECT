@@ -8,7 +8,8 @@ SplineSELECT(
   data,
   var.names,
   q.names = NULL,
-  useTots = TRUE,
+  Tots = TRUE,
+  q.ODadjust = T,
   bs = "cr",
   k = 5,
   sp = NULL,
@@ -17,17 +18,32 @@ SplineSELECT(
 )
 }
 \arguments{
-\item{bs}{Choice of smoother}
+\item{data}{Catch data in SELECT format}
 
-\item{k}{Dimension of the basis. k=3 in minimum for natural cubic spline.}
+\item{var.names}{Character vector giving the variable names.
+The first name is always the length variable,
+followed by names of the raw catch variables. E.g., c("lgth","nA","nB")}
+
+\item{Tots}{Total the (adjusted) catch over all tows?}
+
+\item{q.ODadjust}{Over-dispersion adjustment. If TRUE (default) and the catches
+have been adjusted upwards due to sampling, then the summed catch numbers are
+adjusted downwards to have total equal to the actual number of fish measured.
+This does not change catch share proportions, but will reduce potential
+overfitting of polynomial and spline curves due to overdispersion.}
+
+\item{bs}{Choice of smoother. Default is natural cubic spline.}
+
+\item{k}{Dimension of the basis. k=3 is the minimum for natural cubic spline.}
 
 \item{sp}{Supplied smoothing parameter}
 
 \item{quasi}{Logical, whether to apply quasibinomial correction}
 
-\item{Catch}{Matrix with data in first three columns}
+\item{rm.zeros}{If TRUE, removes zero lengthclasses with zero catch.
+This eliminates dependency of the knot locations on arbitrary null catch lengthclasses.}
 
-\item{m}{Order of the penalty}
+\item{q.name}{Character vector giving the names of sampling fractions, if any.}
 }
 \value{
 List containing fitted model.

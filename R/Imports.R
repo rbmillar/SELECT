@@ -1,3 +1,3 @@
 #' @import tidyverse
-#' @import data.table
+#' @import MuMin
 #'

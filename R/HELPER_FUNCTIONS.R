@@ -391,17 +391,35 @@ delta.method=function (g, mean, cov, ses = TRUE)
 
 #===============================================================================
 #' Convert raw counts by haul to totals, and adjusts for any subsampling
+#' @description Adjusts for any subsampling and (by default) sum over tows.
+#' @param data Catch data in SELECT format
+#' @param var.names Character vector giving the variable names.
+#' The first name is always the length variable,
+#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
+#' @param q.name Character vector giving the names of sampling fractions, if any.
+#' @param Tots Total the (adjusted) catch over all tows?
+#' @param q.ODadjust Over-dispersion adjustment. If TRUE (default) and the catches
+#' have been adjusted upwards due to sampling, then the summed catch numbers are
+#' adjusted downwards to have total equal to the actual number of fish measured.
+#' This does not change catch share proportions, but will reduce potential
+#' overfitting of polynomial and spline curves due to overdispersion.
+#' @return dataframe
 #' @export
-Raw2Tots=function(data,var.names,q.names=NULL,useTots=T) {
-  Counts=data[,var.names[-1]]
+Raw2Tots=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=TRUE,useTots=NULL) {
+  useTots=Tots #Temporary until dependencies updated.
   #For unpaired data q may be zero if count is 0. Need to avoid divide by zero
   if(!is.null(q.names)) {
+    n.raw=sum(data[,var.names[-1]])
     Q=data[,q.names]
-    Q[Q==0]=1e-12
+    Q[Q==0]=1
     data[,var.names[-1]]=data[,var.names[-1]]/Q }
-  if(useTots) {
+  if(Tots) {
     Data=data[,var.names] %>% group_by(across(all_of(var.names[1]))) %>%
-      summarize(across(all_of(var.names[-1]),sum)) %>% data.frame() }
+      summarize(across(all_of(var.names[-1]),sum)) %>% data.frame()
+	if(q.ODadjust & !is.null(q.names)) {
+	  n.tot=sum(Data[,var.names[-1]])
+	  Data[,var.names[-1]]=Data[,var.names[-1]]*n.raw/n.tot }
+	}
   Data
 }
 
@@ -414,7 +432,7 @@ Raw2Tots=function(data,var.names,q.names=NULL,useTots=T) {
 #' @param freq Character giving frequency variable name
 #' @param q.name Name of sampling fraction variable
 #' @param paired Are data paired within gear?
-#' @return Dataframe, in SELECT format
+#' @return dataframe, in SELECT format
 #' @export
 SELECT.FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NULL,
                        paired=T) {

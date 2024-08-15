@@ -20,6 +20,15 @@ SELECT(
   Fit = TRUE
 )
 }
+\arguments{
+\item{data}{Catch data in SELECT format}
+
+\item{var.names}{Character vector giving the variable names.
+The first name is always the length variable,
+followed by names of the raw catch variables. E.g., c("lgth","nA","nB")}
+
+\item{q.name}{Character vector giving the names of sampling fractions, if any.}
+}
 \description{
 SELECT is an acronym for the Share Each LEngths Catch Total method
 of Millar (1992). SELECT is a general statistical framework to  estimate the

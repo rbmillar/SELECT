@@ -5,25 +5,28 @@
 \title{Fit model averaged 4th order polynomial}
 \usage{
 PolySELECT(
-  Catch,
-  vars = c("lgth", "nC", "nT"),
-  Quasi = F,
+  data,
+  var.names,
+  q.names = NULL,
+  Tots = TRUE,
+  q.ODadjust = T,
+  quasi = F,
   wgt = "AICc",
   All = TRUE
 )
 }
 \arguments{
-\item{Catch}{Matrix with data in first three columns}
-
-\item{vars}{Column variable names if not vars=c("lgth","nC","nT")}
-
-\item{Quasi}{Logical, whether to apply quasibinomial correction}
+\item{data}{Matrix with data in first three columns}
 
 \item{wgt}{Weighting criterion. If not "AICc" then AIC is used}
 
 \item{All}{If not TRUE then only full models from null to 4th order are used.}
 
+\item{vars}{Column variable names if not vars=c("lgth","nC","nT")}
+
 \item{plens}{If specified, lengths at which to calculated fitted values.}
+
+\item{Quasi}{Logical, whether to apply quasibinomial correction}
 }
 \value{
 List containing fitted values, overdispersion, wgt and dredge averaged fit.
