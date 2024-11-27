@@ -227,7 +227,7 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 #'
 #' @param data Matrix or dataframe of catches in SELECT format
 #' @param freq.names Character vector giving the names of the two catch frequency variables
-#' @param haul Character value giving the haul variable name
+#' @param haul Character value giving the haul variable name. This must be UNIQUE for all hauls.
 #' @param paired Logical. True if the data are paired
 #' @param block Character value giving blocking variable. Only used if `paired=FALSE`
 #'
@@ -235,8 +235,8 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 #' @export
 #'
 
-Randomize=function(data,freq.names=c("n1","n2"),haul="haul",q.names=NULL,
-                   paired=TRUE,gear=NULL,block=NULL) {
+Randomize=function(data,freq.names=c("n1","n2"),haul="haul",
+                   paired=TRUE,gear=NULL,block=NULL,q.names=NULL) {
   if(paired==T&(!is.null(block)|!is.null(gear)))  cat("\n NOTE: gear and block
         variables will be ignored since permutation is within gear pairs\n")
   if(paired==F&is.null(gear)) Stop("\n ERROR: gear name is required
@@ -257,19 +257,21 @@ Randomize=function(data,freq.names=c("n1","n2"),haul="haul",q.names=NULL,
   data=bind_rows(permList)
   }
   if(!paired) {
-    Wk$haul=as.numeric(Wk$haul)
     Wk$gear=Wk[,gear]
     if(is.null(block)) Wk$block="All" else Wk$block=data[,block]
-    haulgear= Wk %>% group_by(block,haul) %>%
-      summarize(haulgear=unique(gear), .groups = "drop_last")
-    if(nrow(haulgear)!=nHauls)
+    haulgrp= Wk %>% group_by(block,haul) %>%
+      summarize(grp=unique(gear), .groups = "drop_last")
+    if(nrow(haulgrp)!=nHauls)
       stop("Permutation ERROR: Check data for multiple gear types in a haul")
-    #haulgear is grouped by block.
+    #haulgear tibble is still grouped by block.
     #Use slice_sample to sample (without replacement) from each block
-    #Code works with n=nHauls although it will exceed block size unless block="All"
-    permgear = haulgear %>% slice_sample(n=nHauls) %>% pull(haulgear)
-    permuted.gear = permgear[Wk$haul]
-    permuted.obs=(Wk$gear!=permuted.gear)
+    #Code works with n=nHauls even though it exceeds block size unless block="All"
+    permgrp = haulgrp %>% slice_sample(n=nHauls)
+    #Identify which hauls are permuted
+    permuted.hauls=haulgrp$haul[haulgrp$grp!=permgrp$grp]
+    #Identify the permuted rows in the data frame, and permute
+    permuted.obs=(Wk$haul %in% permuted.hauls)
+    data$Permuted=permuted.obs
     data[permuted.obs,freq.names]=data[permuted.obs,rev(freq.names)]
     if(!is.null(q.names))
       data[permuted.obs,q.names]=data[permuted.obs,rev(q.names)]

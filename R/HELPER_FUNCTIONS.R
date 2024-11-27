@@ -9,7 +9,6 @@
 #' @export
 ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
                     print.out=T,plots=c(T,T),plotlens=NULL,pex=1,...) {
-  r=propncurves(fit$rtype) #Get propn catch curve function
   lens=fit$Data[,1]; nlens=length(lens)
   Meshsize=fit$Meshsize; nmeshes=length(Meshsize)
   O=fit$Data[,-1]; #Matrix of observed counts
@@ -17,11 +16,12 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
   Ototals=apply(O,1,sum,na.rm=TRUE)
   Opropns=O/Ototals
   NullPropns=matrix(apply(O,2,sum,na.rm=TRUE),nrow=nlens,ncol=nmeshes,byrow=T)/sum(O)
+  r=propncurves(fit$rtype) #Get propn catch curve function
   rmatrix=outer(lens,Meshsize,r,fit$par)
   rmatrix[is.na(O)]=NA #No fitted retention for missing meshsizes
   rmatrix=t(t(rmatrix)*fit$rel.power)
   phi=rmatrix/apply(rmatrix,1,sum,na.rm=TRUE)
-  E=apply(O,1,sum,na.rm=TRUE)*phi #Matrix of expected counts
+  E=apply(O,1,sum,na.rm=TRUE)*phi
   Pearson.resids=(O-E)/sqrt(E)
   Pearson.chisq=sum(Pearson.resids^2,na.rm=TRUE)
   wk=O*log(O/E); wk[is.na(wk)]=0

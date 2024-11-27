@@ -1,0 +1,171 @@
+---
+title: 'Next Generation SELECT  \newline Examples of Use'
+author: "Russell Millar"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+  pdf_document: default
+  word_document: default
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.height=3)
+```
+
+```{r}
+#NB: remotes package needs to be installed
+#remotes::install_github("rbmillar/SELECT")
+require(SELECT)
+require(tidyverse)
+```
+
+# Analysis of Clark's covered codend haddock data
+
+**Logistic and Richards curves are fitted. We see that the logistic is preferred**
+
+`Clark` **is a dataframe included within the SELECT package.**
+
+```{r}
+#Use dtype="cc" to specify that design type is covered codend
+data(Clark)
+head(Clark)
+cc.names=c("lenclass","cover","codend")
+#Fit logistic selection curve
+fitL=SELECT(Clark,cc.names,dtype="cc")
+ModelCheck(fitL,minE=1,las=1)
+Estimates(fitL) 
+PlotCurves(fitL,plotlens=seq(19,56,0.1))
+
+#Fit Richards selection curve
+fitR=SELECT(Clark,cc.names,dtype="cc",stype="richards")
+ModelCheck(fitR,minE=1,las=1)
+Estimates(fitR);
+PlotCurves(fitR,plotlens=seq(19,56,0.1))
+
+#Likelihood ratio test for H0 that logistic mode is adequate
+LRTstat=2*(deviance(fitL)-deviance(fitR))
+cat("\n p-value for H0:logistic is",1-pchisq(LRTstat,1))
+```
+
+**The `ModelCheck` shows no evidence of overdispersion so we can use twice the
+difference in deviance as a likelihood ratio test statistic. 
+There in no significant evidence against the logistic curve.**
+
+# Analysis of Pope's alternate haul haddock data
+
+```{r}
+#Use dtype="ph" to specify that design type is paired haul
+data(Pope)
+head(Pope)
+ph.names=c("Lengths","nfine","nwide")
+#FIt logistic seln cure
+fitL=SELECT(Pope,ph.names,dtype="ph")
+ModelCheck(fitL,minE=1,las=1)
+Estimates(fitL) 
+PlotCurves(fitL)
+predict(fitL)
+```
+
+# Analysis of Pope's alternate haul haddock data with fixed split (of 0.5)
+
+**For fixed split, the user must specify start values for parameters of the selection curve.**
+
+**The fixed split is specified using relative power, in this case, `rel.power=c(1,1)` since the experimental and control have the same fishing power when the split is 0.5.**
+
+**Use `dtype=re` for `relative` (power) fits.**
+
+```{r}
+#Fixed split, psplit=0.5
+fitR2=SELECT(Pope,ph.names,dtype="re",x0=c(-30,1),rel.power=c(1,1))
+ModelCheck(fitR2,minE=1,las=1)
+Estimates(fitR2) 
+PlotCurves(fitR2,las=1)
+```
+
+# Relative selectivity with bootstrap and permutation test
+
+## Fit spline
+```{r}
+require(mgcv)
+data(SimCatch)
+head(SimCatch)
+Vnames=c("lgth","n1","n2")
+SplineFit=SplineSELECT(SimCatch,var.names=Vnames)
+nsim=400 #Change to 1000 in practice
+```
+
+## Permutation test
+```{r, cache=T}
+permRsq=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names)
+  summary(SplineFit)$r.sq }
+ObsRsq=permRsq(SimCatch,Vnames)
+cat("\nThe observed r-square is",ObsRsq,"\n")
+
+PermRsq=permSELECT(SimCatch,Vnames,permRsq,haul="TowID",nsim=nsim, paired=T)
+
+pval=mean(ObsRsq<=PermRsq)
+cat("\nThe p-value for length-independent catch share is",pval,"\n")
+```
+
+## Bootstrap plot
+```{r, cache=T}
+lenseq=21:120
+bootPredn=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names)
+  predict(SplineFit,newdata=data.frame(lgth=lenseq),type="response") }
+#Check that it works
+preds=bootPredn(SimCatch,Vnames)
+plot(lenseq,preds,type="l",xlab="Length",ylab="Catch share")
+
+BootPreds=bootSELECT(SimCatch,Vnames,bootPredn,haul="TowID",nsim=nsim,paired=T)
+
+Propn=SimCatch %>% group_by(lgth) %>% summarize(n1=sum(n1),n2=sum(n2))     %>% mutate(y=n2/(n1+n2))
+BootPlot(BootPreds,lenseq,preds,Propn)
+```
+
+
+# Analysis of Holt's gillnet data
+
+**Several alternative curve types are fitted. The bi-lognormal looks preferable, evidenced by a decrease in deviance of about 160.**
+**Even taking in to account the over-dispersion correction factor of about 9, this is still highly significant.**
+**The starting parameters for the gear with smallest mesh size need to be specified.**
+
+```{r}
+data(Holt)
+Meshs=Holt$Meshsize 
+Counts=Holt$Counts
+names(Counts)=c("lgth",paste0("M",Meshs))
+re.names=names(Counts)
+#Equal fishing power of the eight meshsizes
+pwr=rep(1,8)
+#Or use this for fishing power proportional to meshsize
+#pwr=Meshsize
+
+par(mfrow=c(3,2),mar=c(4.1,4.1,1,1))
+fit=SELECT(Counts,re.names,dtype="re",stype="norm.loc",Meshsize=Meshs,x0=c(60,4),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Counts,re.names,dtype="re",stype="norm.sca",Meshsize=Meshs,x0=c(60,4),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+#Needs wide seln curve for x0
+fit=SELECT(Counts,re.names,dtype="re",stype="gamma",Meshsize=Meshs,x0=c(10,5),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Counts,re.names,dtype="re",stype="logistic",Meshsize=Meshs,x0=c(-60,1),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Counts,re.names,dtype="re",stype="richards",Meshsize=Meshs,x0=c(-60,1,0),rel.power=pwr) 
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Counts,re.names,dtype="re",stype="lognorm",Meshsize=Meshs,x0=c(log(60),0.1),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Counts,re.names,dtype="re",stype="binorm.sca",Meshsize=Meshs,x0=c(55,4,65,4,2),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+
+fit=SELECT(Counts,re.names,dtype="re",stype="bilognorm",Meshsize=Meshs,x0=c(4,0.2,4.2,0.1,2),rel.power=pwr)
+ModelCheck(fit,minE=1); Estimates(fit); PlotCurves(fit,plotlens=seq(40,90,0.1))
+```
