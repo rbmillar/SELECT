@@ -283,12 +283,23 @@ nllhood=function(theta,Data,Meshsize,r,rel.power,penalty.func) {
 
 #===============================================================================
 #' Function to calculate overdispersion
-#' @description Returns OD estimate from matrices of observed and expected counts
+#' @description Returns OD estimate from matrices of observed and expected counts.
+#' If the two matrices have equal row sum than the degrees of freedom is adjusted
+#' for this constraint.
+#' @param O Matrix of observed counts
+#' @param E Matrix of expected (fitted) counts
+#' @param minE Calculates OD only over cells with at least minE expected count.
+#' @param verbose If FALSE then the message is suppressed.
 #' @export
-calcOD=function(O,E,npar,minE=1) {
-  if(!identical(dim(O),dim(E))) stop("O and E must be same dimension")
-  if( max(abs(apply(O,1,sum)-apply(E,1,sum)))>1e-6 )
-     cat("\nWARNING: Row sums of observed and expected not all equal\n")
+calcOD=function(O,E,npar,minE=1,verbose=T) {
+  if(!identical(dim(O),dim(E))) stop("O and E must be the same dimension")
+  EqualRowSums={ max(abs(apply(O,1,sum)-apply(E,1,sum)))<1e-6 }
+  if(verbose & EqualRowSums)
+    cat("\nNOTE: O and E have equal row sums, so dof will be reduced by
+         the number of rows used") else
+    cat("\nNOTE: O and E have unequal row sums, i.e., non-SELECT fit")
+  dof.adj=ifelse(EqualRowSums,1,0)
+
   Pearson.resids=(O-E)/sqrt(E)
   wk=O*log(O/E); wk[is.na(wk)]=0
   Dev.resids=sign(O-E)*sqrt(2*(E-O+wk))
@@ -297,7 +308,7 @@ calcOD=function(O,E,npar,minE=1) {
   #But also need to exclude a cell if it is the only one in a row with freq>=minE
   RowIndex=(1:nrow(E))[apply(Index,1,sum,na.rm=TRUE)==1]
   Index[RowIndex,]=FALSE
-  dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-1))-npar
+  dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-dof.adj))-npar
   Pearson.chisq=sum((Pearson.resids^2)[Index],na.rm=TRUE)
   Deviance=sum((Dev.resids^2)[Index],na.rm=TRUE)
   Deviance.CF=Deviance/dof
@@ -414,13 +425,13 @@ Raw2Tots=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=TRUE,useTots=
     Q[Q==0]=1
     data[,var.names[-1]]=data[,var.names[-1]]/Q }
   if(Tots) {
-    Data=data[,var.names] %>% group_by(across(all_of(var.names[1]))) %>%
+    data=data[,var.names] %>% group_by(across(all_of(var.names[1]))) %>%
       summarize(across(all_of(var.names[-1]),sum)) %>% data.frame()
 	if(q.ODadjust & !is.null(q.names)) {
-	  n.tot=sum(Data[,var.names[-1]])
-	  Data[,var.names[-1]]=Data[,var.names[-1]]*n.raw/n.tot }
+	  n.tot=sum(data[,var.names[-1]])
+	  data[,var.names[-1]]=data[,var.names[-1]]*n.raw/n.tot }
 	}
-  Data
+  data
 }
 
 #===============================================================================

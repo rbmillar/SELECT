@@ -92,11 +92,15 @@ data(SimCatch)
 head(SimCatch)
 Vnames=c("lgth","n1","n2")
 SplineFit=SplineSELECT(SimCatch,var.names=Vnames)
-nsim=400 #Change to 1000 in practice
+
+lenseq=21:120
+predn=predict(SplineFit,newdata=data.frame(lgth=lenseq),type="response")
+plot(lenseq,predn,type="l",xlab="Length",ylab="Catch share",las=1)
 ```
 
 ## Permutation test
 ```{r, cache=T}
+nsim=400 #Change to at least 1000 in practice
 permRsq=function(data,var.names) {
   SplineFit=SplineSELECT(data,var.names)
   summary(SplineFit)$r.sq }
@@ -111,6 +115,7 @@ cat("\nThe p-value for length-independent catch share is",pval,"\n")
 
 ## Bootstrap plot
 ```{r, cache=T}
+nsim=400 #Change to at least 1000 in practice
 lenseq=21:120
 bootPredn=function(data,var.names) {
   SplineFit=SplineSELECT(data,var.names)
