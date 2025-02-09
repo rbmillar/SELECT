@@ -1,4 +1,26 @@
 #===============================================================================
+#' Gillnet data
+#'
+#' Counts of trout from a five mesh gang of gillnets
+#'
+#' @docType data
+#'
+#' @usage data(Trout)
+#'
+#' @format list object with components Counts (18 by 6 - first column is lengths) and
+#' Meshsize (vector of meshsizes)  respectively.
+#'
+#' @keywords datasets
+#'
+#' @references Helser T. E., et al. (1963). Estimating gillnet selectivity
+#' using nonlinear response surface regression.
+#' Can. J. Fish. Aquat. Sci. 55: 1328-1337.
+
+#' @examples
+#' data(Trout)
+"Trout"
+
+#===============================================================================
 #Clark=read.table("../inst/extdata/Clark113_20min.dat",head=T)
 #save(Clark,file="../data/Clark.RData")
 
@@ -60,7 +82,7 @@
 
 #' Gillnet data
 #'
-#' Counts from eight mesh gang of gillnets
+#' Counts from an eight mesh gang of gillnets
 #'
 #' @docType data
 #'
@@ -99,3 +121,4 @@
 #' @examples
 #' data(SimCatch)
 "SimCatch"
+

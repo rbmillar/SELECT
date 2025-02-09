@@ -15,12 +15,14 @@ summary.SELECT=function(obj) {
   #Add AIC&BIC and table for par ests and sds
   cat("Call:",deparse(obj$Call),"\n")
   Estimates(obj)
-  summStats=ModelCheck(obj,print.out=F,plots=c(F,F))$stats
-  llhoods=summStats[,c("null.l","model.l","full.l")]
-  cat("\nLog-likelihoods:\n")
+  Wk=ModelCheck(obj,print.out=F,plots=c(F,F))
+  FitStats=Wk$stats
+  GOFStats=Wk$gof
+  llhoods=FitStats[,c("null.l","model.l","full.l","AIC")]
+  cat("\nLog-likelihoods and AIC:\n")
   print(llhoods)
-  cat("\nFit statistics\n")
-  GOF=summStats[,c("Deviance","Pearson.chisq","dof","Deviance.CF","Pearson.CF")]
+  cat("\nGoodness of fit statistics\n")
+  GOF=GOFStats[,c("Deviance","Pearson.chisq","dof","Deviance.CF","Pearson.CF")]
   print(GOF)
   cat("\nEstimates\n")
   print(Estimates(obj))
@@ -29,7 +31,12 @@ summary.SELECT=function(obj) {
 #summary(Fit1)
 
 #' @export
-plot.SELECT=function(obj,...) ModelCheck(obj,print.out=F,...)
+plot.SELECT=function(obj,plotlens=NULL,npts=101,...) {
+  if(is.null(plotlens)) {
+    lgth=obj$Data[,1]
+    plotlens=seq(min(lgth),max(lgth),length=npts) }
+  PlotCurves(obj,plotlens,...)
+}
 
 #' @export
 predict.SELECT=function(obj,newdata=NULL) {
@@ -47,4 +54,26 @@ logLik.SELECT=function(obj) {
 
 #' @export
 deviance.SELECT=function(obj) obj$deviance
+
+#' Calculate AIC
+#' @description Calculates AIC of SELECT object. By default it provides the
+#' binomial SELECT AIC. For comparison with models fitted by glm of gam use
+#' type="poisson" to get the Poisson AIC.
+#'
+#' @param obj Fitted SELECT model
+#' @param type Use type="poisson" to get Poisson AIC. This is calculated from the
+#' matrices of observed and fitted counts and does not condition on row totals.
+#' @export
+AIC.SELECT=function(obj,type="SELECT") {
+  if(type=="SELECT") AIC=ModelCheck(obj,print.out=F,plots=c(F,F))$stats[1,"AIC"]
+  else
+    { O=as.matrix(obj$Data[,-1])
+      npar=length(obj$par)+nrow(O)
+      E=ModelCheck(obj,print.out=F,plots=c(F,F))$fit
+      AIC=-2*sum(dpois(as.vector(O),as.vector(E),log=T)) + 2*npar
+      names(AIC)="Poisson.AIC" }
+  AIC }
+
+
+
 

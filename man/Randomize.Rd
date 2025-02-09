@@ -8,10 +8,10 @@ Randomize(
   data,
   freq.names = c("n1", "n2"),
   haul = "haul",
-  q.names = NULL,
   paired = TRUE,
   gear = NULL,
-  block = NULL
+  block = NULL,
+  q.names = NULL
 )
 }
 \arguments{
@@ -19,7 +19,7 @@ Randomize(
 
 \item{freq.names}{Character vector giving the names of the two catch frequency variables}
 
-\item{haul}{Character value giving the haul variable name}
+\item{haul}{Character value giving the haul variable name. This must be UNIQUE for all hauls.}
 
 \item{paired}{Logical. True if the data are paired}
 

@@ -17,7 +17,7 @@
 #' @export
 SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
                  q.names=NULL,Meshsize=NULL,x0=NULL,rel.power=NULL,penalty.func=NULL,
-                 verbose=NULL,control=list(maxit=10000,reltol=1e-8),Fit=TRUE) {
+                 verbose=FALSE,control=list(maxit=10000,reltol=1e-8),Fit=TRUE) {
   #SELECT.args=as.list(environment()) %>% discard(is.null)
   if(typeof(var.names)!="character")
     stop('SELECT errror message: \n Variable names must be character')
@@ -51,7 +51,7 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
   if(is.null(penalty.func)) penalty.func=function(theta){0.0}
   if(nGears!=length(Meshsize)) stop("Number of mesh sizes should be ",nGears)
   if(is.null(x0)) x0=StartValues(rtype,Data)
-  SELECT.args=list(data=data,var.names=var.names,Data=Data,rtype=rtype,
+  SELECT.args=list(rawdata=data,var.names=var.names,Data=Data,rtype=rtype,
         Meshsize=Meshsize,x0=x0,rel.power=rel.power,penalty.func=penalty.func)
   #Calculate logliks at x0 and of saturated model
   ll.init=Const-nllhood(theta=x0,Data,Meshsize,r,rel.power,penalty.func)
@@ -60,10 +60,10 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
   CountTotals=ifelse(CountTotals==0,Inf,CountTotals)
   CountPropns=Counts/CountTotals
   ll.fullfit=Const+sum(Counts[Counts>0]*log(CountPropns[Counts>0]),na.rm=TRUE)
-  if(is.null(verbose)) cat("Log-likelihood is",ll.init,"at x0=",round(x0,2),"\n")
-  if(is.null(verbose)) cat("Saturated log-likelihood is",ll.fullfit,"\n")
+  if(verbose) cat("Log-likelihood is",ll.init,"at x0=",round(x0,2),"\n")
+  if(verbose) cat("Saturated log-likelihood is",ll.fullfit,"\n")
   if(!Fit) {
-    if(is.null(verbose)) cat("SELECT model fitted at x0 - no optimization: \n")
+    if(verbose) cat("SELECT model fitted at x0 - no optimization: \n")
     control$maxit=0
     #Hessian is not evaluated at x0 when maxit=0, so set hessian=F
     fit=optim(x0,nllhood,Data=Data,Meshsize=Meshsize,r=r,rel.power=rel.power,
@@ -71,14 +71,14 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
     fit$par=x0 #Quirk of optim with maxit=0 is that pars are set to zero
     fit$hessian=matrix(NA,length(x0),length(x0)) }
   if(Fit) {
-    if(is.null(verbose))
+    if(verbose)
       cat("Fitting SELECT model with",stype,"selection curves to",design,"data.\n")
     fit=optim(x0,nllhood,Data=Data,Meshsize=Meshsize,r=r,rel.power=rel.power,
               penalty.func=penalty.func,hessian=T,control=control) }
   fit$value=fit$value-Const
   fit=fit[names(fit) %in% c("counts", "message") == FALSE]
   Dev=2*(ll.fullfit+fit$value)
-  if(is.null(verbose)) {
+  if(verbose) {
     cat(paste0("Convergence code ",fit$convergence,
                ": Optimizer has ",ifelse(fit$convergence==0,"","*NOT*"),"converged\n"))
     cat("Pars=",fit$par,", Deviance=",Dev,", #len classes=",npos,"\n") }

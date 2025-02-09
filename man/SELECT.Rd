@@ -15,7 +15,7 @@ SELECT(
   x0 = NULL,
   rel.power = NULL,
   penalty.func = NULL,
-  verbose = NULL,
+  verbose = FALSE,
   control = list(maxit = 10000, reltol = 1e-08),
   Fit = TRUE
 )

@@ -21,7 +21,7 @@ data(Holt)
 Alternate hauls haddock data used in Wileman et al. (1996) and Pope et al. (1975).
 Codend mesh is 87 mm diamond.
 
-Counts from eight mesh gang of gillnets
+Counts from an eight mesh gang of gillnets
 }
 \examples{
 data(Pope)

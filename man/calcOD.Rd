@@ -4,8 +4,19 @@
 \alias{calcOD}
 \title{Function to calculate overdispersion}
 \usage{
-calcOD(O, E, npar, minE = 1)
+calcOD(O, E, npar, minE = 1, verbose = T)
+}
+\arguments{
+\item{O}{Matrix of observed counts}
+
+\item{E}{Matrix of expected (fitted) counts}
+
+\item{minE}{Calculates OD only over cells with at least minE expected count.}
+
+\item{verbose}{If FALSE then the message is suppressed.}
 }
 \description{
-Returns OD estimate from matrices of observed and expected counts
+Returns OD estimate from matrices of observed and expected counts.
+If the two matrices have equal row sum than the degrees of freedom is adjusted
+for this constraint.
 }

@@ -34,23 +34,25 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
   null.l=Const+sum(O*log(NullPropns),na.rm=TRUE)
   model.l=Const+sum(O*log(phi),na.rm=TRUE)
   NonZeroDat=O[apply(O,1,sum,na.rm=TRUE)>0,]
-  dof=nrow(NonZeroDat)*(nmeshes-1)-length(fit$par)-sum(is.na(NonZeroDat))
+  npar=length(fit$par)
+  aic=-2*model.l+2*npar
+  dof=nrow(NonZeroDat)*(nmeshes-1)-npar-sum(is.na(NonZeroDat))
   Deviance.CF=Deviance/dof; Pearson.CF=Pearson.chisq/dof
-  out1=cbind(null.l,model.l,full.l,Deviance,Pearson.chisq,dof,Deviance.CF,Pearson.CF)
-  outlist=list(stats=out1,fit=E)
+  out1a=cbind(null.l,model.l,full.l,npar,AIC=aic)
+  out1b=cbind(Deviance,Pearson.chisq,dof,Deviance.CF,Pearson.CF)
+  outlist=list(stats=out1a,gof=out1b,fit=E)
   #If n cells for a given length have freq>=minE, it contributes max(0,n-1) dof
   if(minE>0) {
     Index=(E>minE)
     #But also need to exclude a cell if it is the only one in a row with freq>=minE
     RowIndex=(1:nrow(E))[apply(Index,1,sum,na.rm=TRUE)==1]
     Index[RowIndex,]=FALSE
-    dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-1))-length(fit$par)
+    dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-1))-npar
     Pearson.chisq=sum((Pearson.resids^2)[Index],na.rm=TRUE)
     Deviance=sum((Dev.resids^2)[Index],na.rm=TRUE)
     Deviance.CF=Deviance/dof
     Pearson.CF=Pearson.chisq/dof
     out2=cbind(Deviance,Pearson.chisq,dof,Deviance.CF,Pearson.CF)
-    #outlist=list(stats=out1,fit=E)
   }
   #plots argument controls plotting of both deviance and fits
 
@@ -90,7 +92,8 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
 	  lines(plotlens,phi[,2],lty=2,...)
 	}
   if(print.out) {
-    cat("Model fit:\n"); print(out1[1,]);
+    cat("Model fit:\n"); print(out1a[1,])
+    cat("GOF:\n"); print(out1b[1,])
     if(minE>0) {
       cat("\nCorrection factors from cells with expected count >",minE,":\n")
       print(out2[1,])
@@ -337,7 +340,8 @@ StartValues=function(rtype,Data) {
 
 #===============================================================================
 #' Constant term in log-likelihood
-#' #' @export
+#'
+#' @export
 mchoose=function(x,log=TRUE){
   x=as.matrix(x)
   if(ncol(x)==1) stop("x[] must have at least 2 columns")

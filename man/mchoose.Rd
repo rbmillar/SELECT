@@ -2,12 +2,10 @@
 % Please edit documentation in R/HELPER_FUNCTIONS.R
 \name{mchoose}
 \alias{mchoose}
-\title{Constant term in log-likelihood
-#' @export}
+\title{Constant term in log-likelihood}
 \usage{
 mchoose(x, log = TRUE)
 }
 \description{
 Constant term in log-likelihood
-#' @export
 }
