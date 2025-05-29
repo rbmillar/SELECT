@@ -1,15 +1,12 @@
 Package: SELECT
-Title: Analysis of size-selectivity data
-Version: 1.1.0
+Title: What the Package Does (One Line, Title Case)
+Version: 0.1.0
 Authors@R: 
     person("Russell", "Millar", , "r.millar@auckland.ac.nz", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-1121-8721"))
-Description: For analysis of size-selectivity experiments. Includes methods for trawls, pots and gillnets. Allows parametric, model-averaged and spline curves. Easy implementation of permutation tests and bootstrapping.
+Description: What the package does (one paragraph).
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-Imports: 
-    MuMIn,
-    tidyverse
