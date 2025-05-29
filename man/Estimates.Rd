@@ -4,10 +4,11 @@
 \alias{Estimates}
 \title{Returns selectivity parameters}
 \usage{
-Estimates(fit)
+Estimates(fit, OD = NULL)
 }
 \description{
-Calculates the estimates and standard error of selectivity
-curve implemented by SELECT. The user can edit to add new calculations for
-any user-supplied retention curves.
+Calculates the estimates and standard errors for
+parametric selectivity curves fitted by SELECT.
+The user can edit this function to add new
+calculations for any user-supplied retention curves.
 }

@@ -3,7 +3,7 @@
 \docType{data}
 \name{SimCatch}
 \alias{SimCatch}
-\title{Permuation example data}
+\title{Permutation example data}
 \format{
 dataframe \code{SimCatch} with 1000 rows and 4 columns.
 }

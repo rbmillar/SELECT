@@ -45,11 +45,17 @@ predict.SELECT=function(obj,newdata=NULL) {
   PlotCurves(obj,plotlens=newdata,plot.out=F) }
 
 #' @export
-logLik.SELECT=function(obj) {
+logLik.SELECT=function(obj,type="SELECT") {
   logLik=obj$logLik
-  attr(logLik,"df")=length(obj$par)
   attr(logLik,"nobs")=obj$npos
   class(logLik)="logLik"
+  if(type=="SELECT") attr(logLik,"df")=length(obj$par)
+  else
+  { O=as.matrix(obj$Data[,-1])
+    E=ModelCheck(obj,print.out=F,plots=c(F,F))$fit
+    attr(logLik,"df")=length(obj$par)+nrow(O)
+    logLik=sum(dpois(as.vector(O),as.vector(E),log=T))
+    names(logLik)="Poisson.logLik" }
   logLik }
 
 #' @export

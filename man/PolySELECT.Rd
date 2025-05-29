@@ -8,7 +8,7 @@ PolySELECT(
   data,
   var.names,
   q.names = NULL,
-  Tots = TRUE,
+  sumHauls = TRUE,
   q.ODadjust = T,
   quasi = F,
   wgt = "AICc",

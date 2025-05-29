@@ -104,37 +104,39 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
 
 #===============================================================================
 #' Returns selectivity parameters
-#' @description Calculates the estimates and standard error of selectivity
-#' curve implemented by SELECT. The user can edit to add new calculations for
-#' any user-supplied retention curves.
+#' @description Calculates the estimates and standard errors for
+#' parametric selectivity curves fitted by SELECT.
+#' The user can edit this function to add new
+#' calculations for any user-supplied retention curves.
 #' @export
-Estimates=function(fit) {
+Estimates=function(fit,OD=NULL) {
+  if(!is.null(OD)&!is.numeric(OD)) stop("\n OD must be numeric")
   x=fit$par;
   if(is.null(fit$hess))
     stop("\n SELECT fit does not include a hessian. Perhaps you used fit=F.\n")
   varx=solve(fit$hess)
   names=c("Mode(mesh1)","Std dev.(mesh1)")
   rtype=fit$rtype
-  switch( #"re" and "cc" estimates have identical parameter sets
-    {rtype=ifelse(rtype=="cc.logistic","re.logistic",rtype)
-     rtype=ifelse(rtype=="cc.richards","re.richards",rtype)},
-    "re.norm.loc"={ pars=x; varpars=varx },
-    "re.norm.sca"={ pars=x; varpars=varx },
-    "re.gamma"={
+  switch( #"dc" and "cc" estimates have identical parameter sets
+    {rtype=ifelse(rtype=="cc.logistic","dc.logistic",rtype)
+     rtype=ifelse(rtype=="cc.richards","dc.richards",rtype)},
+    "dc.norm.loc"={ pars=x; varpars=varx },
+    "dc.norm.sca"={ pars=x; varpars=varx },
+    "dc.gamma"={
       pars=c((x[1]-1)*x[2],sqrt(x[1]*x[2]^2))
       varpars=deltamethod(list(~(x1-1)*x2,~x2*sqrt(x1)),x,varx,ses=F)},
 
-    "re.lognorm"={
+    "dc.lognorm"={
       pars=c(exp(x[1]-x[2]^2),sqrt(exp(2*x[1]+x[2]^2)*(exp(x[2]^2)-1)))
       varpars=deltamethod(list(~exp(x1-x2^2),
                ~sqrt(exp(2*x1+x2^2)*(exp(x2^2)-1))),x,varx,ses=F)},
-    "re.binorm.sca"={
+    "dc.binorm.sca"={
       pars=c(x[1:4],exp(x[5])/(1+exp(x[5])))
       names=c("Mode1(mesh1)","Std dev.1(mesh1)",
                     "Mode2(mesh1)","Std dev.2(mesh1)","P(mode1)")
       varpars=deltamethod(list(~x1,~x2,~x3,~x4,~exp(x5)/(1+exp(x5))),
                                                 x,varx,ses=F)},
-    "re.bilognorm"={
+    "dc.bilognorm"={
       pars=c(exp(x[1]-x[2]^2),sqrt(exp(2*x[1]+x[2]^2)*(exp(x[2]^2)-1)),
              exp(x[3]-x[4]^2),sqrt(exp(2*x[3]+x[4]^2)*(exp(x[4]^2)-1)),
              exp(x[5])/(1+exp(x[5])))
@@ -144,16 +146,16 @@ Estimates=function(fit) {
         list(~exp(x1-x2^2),~sqrt(exp(2*x1+x2^2)*(exp(x2^2)-1)),
              ~exp(x3-x4^2),~sqrt(exp(2*x3+x4^2)*(exp(x4^2)-1)),
              ~exp(x5)/(1+exp(x5))),x,varx,ses=F)},
-	"ph.logistic"={
+	"ec.logistic"={
       pars=c(-x[1]/x[2],2*(log(3))/x[2],exp(x[3])/(1+exp(x[3])))
       names=c("L50","SR","p")
       varpars=deltamethod(list(~-x1/x2,~2*log(3)/x2,~exp(x3)/(1+exp(x3))),
                           x,varx,ses=F)},
-	"re.logistic"={
+	"dc.logistic"={
       pars=c(-x[1]/x[2],2*(log(3))/x[2])
       names=c("L50","SR")
       varpars=deltamethod(list(~-x1/x2,~2*log(3)/x2),x,varx,ses=F)},
-  "ph.richards"={
+    "ec.richards"={
       delta=exp(x[3])
       pars=c((log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
              (log(0.75^delta/(1-0.75^delta))-log(0.25^delta/(1-0.25^delta)))/x[2],
@@ -164,7 +166,7 @@ Estimates=function(fit) {
         ~(log(0.75^exp(x3)/(1-0.75^exp(x3))))/x2
         -(log(0.25^exp(x3)/(1-0.25^exp(x3))))/x2,
         ~exp(x3),~exp(x4)/(1+exp(x4))),x,varx,ses=F)},
-	"re.richards"={
+	"dc.richards"={
       delta=exp(x[3])
       pars=c((log(0.25^delta/(1-0.25^delta))-x[1])/x[2],
              (log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
@@ -180,25 +182,25 @@ Estimates=function(fit) {
         -(log(0.25^exp(x3)/(1-0.25^exp(x3))))/x2,~exp(x3)),x,varx,ses=F)},
 
     ###################Deprecated options#######################################
-	"ph.logistic.L50SR"={
+	"ec.logistic.L50SR"={
       pars=c(x[1],x[2],plogis(x[3]))
       names=c("L50","SR","p")
       varpars=deltamethod(list(~x1,~x2,~exp(x3)/(1+exp(x3))),x,varx,ses=F)},
-    "ph.richards.L50SR"={
+    "ec.richards.L50SR"={
       pars=c(x[1],x[2],exp(x[3]),plogis(x[4]))
       print(pars)
       names=c("L50","SR","delta","p")
       varpars=deltamethod(list(~x1,~x2,~exp(x3),~exp(x4)/(1+exp(x4))),x,varx,ses=F)},
-	"re.logistic.L50SR"={ pars=x; varpars=varx; names=c("L50","SR") },
-    "re.logistic.ab"={ #If using a,b parameterization (old code)
+	"dc.logistic.L50SR"={ pars=x; varpars=varx; names=c("L50","SR") },
+    "dc.logistic.ab"={ #If using a,b parameterization (old code)
       pars=c(-x[1]/x[2],2*(log(3))/x[2])
       names=c("L50","SR")
       varpars=deltamethod(list(~-x1/x2,~2*log(3)/x2),x,varx,ses=F)},
-	"re.richards.L50SR"={
+	"dc.richards.L50SR"={
       pars=c(x[1],x[2],exp(x[3]))
       names=c("L50","SR","delta")
       varpars=deltamethod(list(~x1,~x2,~exp(x3)),x,varx,ses=F)},
-    "re.richards.ab"={ #If using a,b parameterization (old code)
+    "dc.richards.ab"={ #If using a,b parameterization (old code)
       delta=exp(x[3])
       pars=c((log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
              (log(0.75^delta/(1-0.75^delta))-log(0.25^delta/(1-0.25^delta)))/x[2],
@@ -208,12 +210,12 @@ Estimates=function(fit) {
         ~(log(0.5^exp(x3)/(1-0.5^exp(x3)))-x1)/x2,
         ~(log(0.75^exp(x3)/(1-0.75^exp(x3))))/x2
         -(log(0.25^exp(x3)/(1-0.25^exp(x3))))/x2,~exp(x3)),x,varx,ses=F)},
-    "ph.logistic.ab"={
+    "ec.logistic.ab"={
       pars=c(-x[1]/x[2],2*(log(3))/x[2],exp(x[3])/(1+exp(x[3])))
       names=c("L50","SR","p")
       varpars=deltamethod(list(~-x1/x2,~2*log(3)/x2,~exp(x3)/(1+exp(x3))),
                           x,varx,ses=F)},
-    "ph.richards.ab"={
+    "ec.richards.ab"={
       delta=exp(x[3])
       pars=c((log(0.5^delta/(1-0.5^delta))-x[1])/x[2],
              (log(0.75^delta/(1-0.75^delta))-log(0.25^delta/(1-0.25^delta)))/x[2],
@@ -230,8 +232,12 @@ Estimates=function(fit) {
       'Possbile covered-codend and alternative hauls types are
                    "logistic" and "richards" \n'))
   )#End of switch
-  estimates=cbind(pars,sqrt(diag(varpars)))
-  colnames(estimates)=c("par","s.e.")
+  std.errors=sqrt(diag(varpars))
+  estimates=cbind(pars,std.errors)
+  colnames(estimates)=c("par","raw s.e.")
+  if(!is.null(OD)) {
+    estimates=cbind(estimates,sqrt(OD)*std.errors)
+    colnames(estimates)[3]="adj s.e." }
   rownames(estimates)=names
   return(estimates) }
 
@@ -271,6 +277,7 @@ PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,standardize=F
 #' Negative log-likelihood of the SELECT model (excluding constants)
 #' @description The general negative log-likelihood function. Provided for
 #' completeness, but not intended for user use.
+#' @export
 nllhood=function(theta,Data,Meshsize,r,rel.power,penalty.func) {
   lens=Data[,1]; Counts=Data[,-1]
   rmatrix=outer(lens,Meshsize,r,theta)
@@ -324,6 +331,7 @@ calcOD=function(O,E,npar,minE=1,verbose=T) {
 #' Initial parameter values for logistic and Richards curves
 #' @description Returns crude data-driven starting values for logistic and
 #' Richards curves
+#' @export
 StartValues=function(rtype,Data) {
   CodendMean=mean(rep(Data[,1],Data[,3]))
   CodendSd=sd(rep(Data[,1],Data[,3]))
@@ -331,8 +339,8 @@ StartValues=function(rtype,Data) {
   switch(substr(rtype,1,6),
          "cc.log"={ c(a0,b0) },
          "cc.ric"={ c(a0,b0,0) },
-         "ph.log"={ c(a0,b0,0) },
-         "ph.ric"={ c(a0,b0,0,0) },
+         "ec.log"={ c(a0,b0,0) },
+         "ec.ric"={ c(a0,b0,0,0) },
          stop("Please provide a value of x0 (initial parameter values")
   )
 }
@@ -412,7 +420,7 @@ delta.method=function (g, mean, cov, ses = TRUE)
 #' The first name is always the length variable,
 #' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
 #' @param q.name Character vector giving the names of sampling fractions, if any.
-#' @param Tots Total the (adjusted) catch over all tows?
+#' @param sumHauls Sum the (adjusted) catch over all hauls?
 #' @param q.ODadjust Over-dispersion adjustment. If TRUE (default) and the catches
 #' have been adjusted upwards due to sampling, then the summed catch numbers are
 #' adjusted downwards to have total equal to the actual number of fish measured.
@@ -420,21 +428,20 @@ delta.method=function (g, mean, cov, ses = TRUE)
 #' overfitting of polynomial and spline curves due to overdispersion.
 #' @return dataframe
 #' @export
-Raw2Tots=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=TRUE,useTots=NULL) {
-  useTots=Tots #Temporary until dependencies updated.
+Raw2Tots=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=TRUE) {
   #For unpaired data q may be zero if count is 0. Need to avoid divide by zero
   if(!is.null(q.names)) {
     n.raw=sum(data[,var.names[-1]])
     Q=data[,q.names]
     Q[Q==0]=1
-    data[,var.names[-1]]=data[,var.names[-1]]/Q }
-  if(Tots) {
+    data[,var.names[-1]]=data[,var.names[-1]]/Q
+    if(q.ODadjust) {
+      n.tot=sum(data[,var.names[-1]])
+      data[,var.names[-1]]=data[,var.names[-1]]*n.raw/n.tot }
+    }
+  if(sumHauls)
     data=data[,var.names] %>% group_by(across(all_of(var.names[1]))) %>%
       summarize(across(all_of(var.names[-1]),sum)) %>% data.frame()
-	if(q.ODadjust & !is.null(q.names)) {
-	  n.tot=sum(data[,var.names[-1]])
-	  data[,var.names[-1]]=data[,var.names[-1]]*n.raw/n.tot }
-	}
   data
 }
 
@@ -452,10 +459,13 @@ Raw2Tots=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=TRUE,useTots=
 SELECT.FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NULL,
                        paired=T) {
   UniqueCheck=Df|>group_by(across(all_of(c(by,gear))))|> summarize(m=n(),.groups="keep")
-  if(max(UniqueCheck$m)>1)
-     stop("\nInput data error: Multiple rows for a unique combination of ",byAll,"\n")
+  if(max(UniqueCheck$m)>1) {
+     warning("Possible data error: There are multiple rows for a unique \n combination of ",
+      c(by,gear),". A unique row ID variable has been added \n")
+     Df$uniqueRowID=1:nrow(Df) 
+     by=c("uniqueRowID",by) }
   if(is.null(q.name)) values=freq else values=c(freq,q.name)
-  Wk=Df |> select(all_of( c(by,gear,values) ))
+  Wk=Df |> select(all_of( c(by,gear,values) )) 
   Wk = Wk |>   pivot_wider(names_from=all_of(gear), #names_prefix=namePrefix,
                       values_from=all_of(values), values_fill=0, names_sep="")
   if(!paired) Wk[,gear]=Df[,gear]

@@ -11,12 +11,33 @@ permSELECT(
   haul = "haul",
   paired = NULL,
   nsim = 2,
-  gear = NULL,
   block = NULL,
+  gear = NULL,
   ...
 )
 }
+\arguments{
+\item{data}{Stacked matrix or dataframe of catches in SELECT format.}
+
+\item{var.names}{Character vector of length 3 containing the names of the length variable and catch variables.
+#' @param statistic The numeric or vector-valued function to be applied to the permuted data. This function would typically be a fit or test statistic.}
+
+\item{haul}{Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.}
+
+\item{paired}{Logical. This is a required parameter. Set to \code{TRUE} if the data are paired, \code{FALSE} otherwise.}
+
+\item{nsim}{Number of permutations  to be performed.}
+
+\item{block}{If specified, name of blocking variable. For example, day of deployment. Permuting is then restricted to being within each block.}
+
+\item{gear}{If specified, name of the gear indicator variable.
+This is required for use with non-paired data.}
+}
+\value{
+A matrix of dimension \code{nsim} by \code{length(statistic)} containing the bootstrap
+}
 \description{
-Permutes data in SELECT format and returns the value of the user
-supplied function\code{statistic}in a nsim by length(statistic) matrix
+Permutes catch data in SELECT format and returns the value of the user
+supplied function\code{statistic}. The returned value is a \code{nsim} by \code{length(statistic)} matrix of statistics.
+#'
 }

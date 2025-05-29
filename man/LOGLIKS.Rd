@@ -4,7 +4,7 @@
 \alias{LOGLIKS}
 \title{Evaluate log-likelihoods from full, null and fixed models}
 \usage{
-LOGLIKS(data, var.names, q.names = NULL, useTots = TRUE, fixed = NULL)
+LOGLIKS(data, var.names, q.names = NULL, sumHauls = TRUE, fixed = NULL)
 }
 \description{
 Evaluate log-likelihoods from full, null and fixed models

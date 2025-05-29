@@ -2,7 +2,7 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{Dble.boot}
 \alias{Dble.boot}
-\title{Return a dataframe containing double bootstrapped raw data.}
+\title{Return a SELECT format dataframe containing hierarchical (double) bootstrapped catch data.}
 \usage{
 Dble.boot(
   data,
@@ -36,7 +36,8 @@ for non-paired data.}
 \item{smooth}{Smooth at within-haul phase to avoid losing degrees of freedom (from increasing number of zero freqs)}
 }
 \value{
-Dataframe of double-bootstrapped freqs
+A list object with two components. The first is the bootstrapped dataframe in SELECT format, and the second is a vector containing the bootstrapped \code{haul} IDs.
+and
 }
 \description{
 Double bootstrap function used by bootSELECT function

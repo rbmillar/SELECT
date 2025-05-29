@@ -8,7 +8,7 @@ SplineSELECT(
   data,
   var.names,
   q.names = NULL,
-  Tots = TRUE,
+  sumHauls = TRUE,
   q.ODadjust = T,
   bs = "cr",
   k = 5,
@@ -24,7 +24,7 @@ SplineSELECT(
 The first name is always the length variable,
 followed by names of the raw catch variables. E.g., c("lgth","nA","nB")}
 
-\item{Tots}{Total the (adjusted) catch over all tows?}
+\item{sumHauls}{Sum the (adjusted) catch over all hauls?}
 
 \item{q.ODadjust}{Over-dispersion adjustment. If TRUE (default) and the catches
 have been adjusted upwards due to sampling, then the summed catch numbers are

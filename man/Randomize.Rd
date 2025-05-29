@@ -19,7 +19,7 @@ Randomize(
 
 \item{freq.names}{Character vector giving the names of the two catch frequency variables}
 
-\item{haul}{Character value giving the haul variable name. This must be UNIQUE for all hauls.}
+\item{haul}{Character value giving the haul variable name. This must be unique for all hauls.}
 
 \item{paired}{Logical. True if the data are paired}
 
@@ -29,6 +29,5 @@ Randomize(
 Dataframe, with randomized gear treatment within each haul
 }
 \description{
-Randomization of gear type within each haul.
-Currently limited to two gears.
+Randomly permutes gear type. If the experiment is paired haul then permutation is solely within each paired haul. If unpaired then permutation is across all hauls, possibly within blocks. Currently limited to two gears.
 }

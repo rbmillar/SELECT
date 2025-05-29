@@ -102,7 +102,7 @@
 
 
 #===============================================================================
-#' Permuation example data
+#' Permutation example data
 #'
 #' Simulated catch data from gears A and B. Used in Appendix 2 of Millar (2024) to
 #' demonstrate use of permutation testing.

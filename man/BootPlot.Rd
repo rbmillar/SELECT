@@ -16,15 +16,21 @@ BootPlot(
 )
 }
 \arguments{
-\item{BootPreds}{Matrix with bootstrap by row and fitted values at length in columns.}
+\item{BootPreds}{Matrix with bootstraps by row and fitted values at length in columns, as produced by bootSELECT.}
 
 \item{predn}{Fitted curve}
 
-\item{lenseqs}{Lengths at which fitted values are calculated.}
+\item{eps}{The quantiles for the lower and upper bootstrap confidence limits are \code{eps} and 1-\code{eps}. Default is 95\% intervals.}
+
+\item{txt}{Size of text used in the plot axes.}
+
+\item{lenseqs}{Lengths at which fitted values were calculated.}
+
+\item{If}{provided the data are added to the plot. The length variable must have the name \code{lgth} and the catch proportion variable \code{y}.}
 }
 \value{
 ggplot GROB
 }
 \description{
-ggplot showing fitted curve and bootstrap bounds
+Uses ggplot to produce a grob (graphical object) displaying the fitted curve and pointwise bootstrap confidence intervals.
 }

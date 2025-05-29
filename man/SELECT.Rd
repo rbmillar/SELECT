@@ -2,14 +2,14 @@
 % Please edit documentation in R/FIT_FUNCTIONS.R
 \name{SELECT}
 \alias{SELECT}
-\title{Fit selection curves to fishing gears using the SELECT method.}
+\title{Fit parametric selection curves to fishing gears using the SELECT method.}
 \usage{
 SELECT(
   data,
   var.names,
   dtype = "cc",
   stype = "logistic",
-  useTots = TRUE,
+  sumHauls = TRUE,
   q.names = NULL,
   Meshsize = NULL,
   x0 = NULL,
@@ -21,18 +21,65 @@ SELECT(
 )
 }
 \arguments{
-\item{data}{Catch data in SELECT format}
+\item{data}{Catch data in SELECT format. This is conventional format with columns
+for length and catch frequencies and possibly other variables (sampling fractions,
+haul ID, block ID). This format is also used for unpaired data whereby only
+the gear used in the haul has non-zero catch values and all other gears are given
+zero catch values (see \code{\link[=SELECT.FORMAT]{SELECT.FORMAT()}}).}
 
 \item{var.names}{Character vector giving the variable names.
 The first name is always the length variable,
-followed by names of the raw catch variables. E.g., c("lgth","nA","nB")}
+followed by names of the raw catch variables. E.g., c("lgth","nA","nB"). It is
+assumed that the experimental codend is given last.}
 
-\item{q.name}{Character vector giving the names of sampling fractions, if any.}
+\item{dtype}{Experimental design type. Can be \code{cc} for covered codend, \code{ec} for
+paired or unpaired designs with experimental and control gear, or \code{dc} for
+direct comparison whereby the relative fishing power is fixed. The latter is
+primarily used for multi-gear gillnet or hook studies, but can also be used for
+experimental vs control studies if it is desired to fix the relative power.}
+
+\item{stype}{Selection curve shape. Options include \code{logistic} and  \code{richards}
+for trawl gears, and the unimodal \code{norm.loc} (location varying by meshsize),
+\code{norm.sca} (scale vatying), \code{gamma}, \code{lognorm}, and bimodal \code{binorm.sca}
+and \code{bilognorm} for gillnets and hooks.}
+
+\item{sumHauls}{Logical indicating whether to sum the catch over hauls before
+fitting the curve. Summing, or not, makes no difference to the fit.}
+
+\item{q.names}{Character vector giving the names of sampling fractions, if any.}
+
+\item{Meshsize}{Numeric vector giving the mesh sizes for each gear. Can also be
+used with trawls if the control codend is possibly not fully non-selective,
+in which case the meshsizes of the control and experimental should be given.}
+
+\item{x0}{Numeric vector giving the starting values for the parameters.
+Typically not required for \code{cc} and \code{dc} designs.}
+
+\item{rel.power}{Numeric vector giving the relative fishing power of each gear.}
+
+\item{penalty.func}{A function of the parameters to calculate a penalty term
+for inclusion in the objective function. Can be useful for stabilizing fits to
+messy data.}
+
+\item{verbose}{Logical indicating whether to print messages during the fit.}
+
+\item{control}{A list of control parameters for the \code{optim} optimizer.}
+
+\item{Fit}{Logical indicating whether to fit the model or just return the relevant
+values (log-likelihoods etc) evaluated at the starting values.}
+}
+\value{
+A list of class \code{SELECT}containing the fitted model, log-likelihoods,
+and other relevant objects
 }
 \description{
 SELECT is an acronym for the Share Each LEngths Catch Total method
-of Millar (1992). SELECT is a general statistical framework to  estimate the
-selectivity of trawls, hooks and gillnets from experimental data.
+of Millar (1992). This is the method universally used for selectivity analysis
+of trawls, hooks and gillnets from experimental data. SELECT simply says that
+the catch data can be treated as proportions within each lengthclass.
+
+The \code{SELECT} functions fits a variety of parametric selection curves to
+catch data from various types of selectivity experiments.
 }
 \references{
 Millar, R. B. (1992).

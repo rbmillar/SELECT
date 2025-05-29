@@ -117,13 +117,13 @@ selncurves=function(rtype) {
 propncurves=function(rtype) {
   switch(
     {dtype=substr(rtype,1,2)},
-    "re"={ selncurves(rtype) },
+    "dc"={ selncurves(rtype) },
     "cc"={ #Assume geometric similarity when selective cover used
        function(lens,Meshsize,th) {
         smatrix=matrix(selncurves(rtype)(lens,Meshsize,th),ncol=2)
         seln=c((1-smatrix[,2])*smatrix[,1],smatrix[,2])
         return(seln) } },
-    "ph"={ #Assume geometric similarity when selective control used
+    "ec"={ #Assume geometric similarity when selective control used
        function(lens,Meshsize,th) {
         smatrix=matrix(selncurves(rtype)(lens,Meshsize,th),ncol=2)
         psplit=plogis(th[length(th)]) #i.e., th[3]=logit(psplit)
@@ -144,7 +144,7 @@ propncurves=function(rtype) {
         seln=c((1-psplit)*seln1,psplit*seln2)
         return(seln) } },
      stop(paste0('SELECT errror message: ',dtype, ' not recognised.\n',
-          'Possible design types are , "re", "cc", "ph", and "un" \n'))
+          'Possible design types are , "dc", "cc", "ec", and "un" \n'))
   )#End of switch
 }
 

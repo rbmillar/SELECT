@@ -1,0 +1,152 @@
+---
+title: "Circumference effect relative size selection"
+output:
+  word_document: default
+  html_document: default
+---
+
+<!-- Modified from Expt 5 T90RelSeln.Rmd & Expt 6 T90DanishSeineRelSeln.Rmd -->
+
+We have three treatments, Ninety-oneT0, Seventy-oneT90narrow and Seventy-oneT90wide.
+
+Flatfish catches are subsampled in batches, so will need to be combined and use average SF.
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.height=5)
+```
+
+```{r, echo=-(1:4),message=F,warning=F}
+#remotes::install_local("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT",force=T)
+#require(gridExtra)
+#require(ggpubr)
+#require(stringr) #For str_sub() to use -ve string posns 
+require(SELECT)
+require(mgcv)
+require(tidyverse)
+require(readxl)
+
+```
+
+## Input species size data and put into SELECT format
+```{r, echo=F}
+workdir="T:/Russell_SSD/ACTIVE/Collaboration/CTU/FRDC/Expt7T90&CircumEffectsOnFlathead/"
+TF.df=read_excel(paste0(workdir,"Tigerflathead sizes for Russell.xlsx"),sheet="Data")
+TF.df$Species="Flathead"
+ESW.df=read_excel(paste0(workdir,"Eastern school whiting sizes for Russell.xlsx"),sheet=1)
+ESW.df$Species="Whiting"
+GUR.df=read_excel(paste0(workdir,"Round.snouted gurnard sizes for Russell.xlsx"),sheet=1)
+GUR.df$Species="Gurnard"
+All.df=rbind(TF.df,ESW.df,GUR.df)
+All.df=rename(All.df,SF=ScalingFactor,Gear=Codend,lgth=Species.Size,
+              TowID=Set.Number,nSamp=TotalNumberofFishMeasured,
+              nTot=NumberofFishinCatch,n=NumberMeasuredatLength)
+#All.df %>% group_by(Gear) %>% summarize(nTows=length(unique(TowID)))
+All.df %>% group_by(Day,TowID) %>% summarize(Gear=unique(Gear)) |> print(n=40)
+#Only days 4(4), 14(4), 9(2), 6(3) & 13(3) have hauls with both T90N and T90W 
+
+#Shorten Gear names
+All.df$Gear=c("T0","T90N","T90W")[match(All.df$Gear,c("90-mm","Narrow-T90","Wide-T90"))]
+All.df$q=1/All.df$SF
+All.df=subset(All.df,select=-c(WeightedNumber,Fate,nTot,SF,nSamp)) %>% data.frame()
+#All.df$Row=1:nrow(All.df)
+
+DF=SELECT.FORMAT(All.df,by=c("Species","Day","TowID","lgth"),
+                          gear="Gear",freq="n",q.name="q",paired=F)
+```
+
+```{r}
+species=c("Flathead","Whiting","Gurnard") 
+Spec=1 #Species selection
+Gears=c("T0","T90N","T90W")
+#SpecDf=DF %>% filter(Species==species[Spec], Gear!="T0")
+SpecDf=DF %>% filter(Species==species[Spec], Gear!="T90N")
+
+#SpecDf %>% group_by(Gear) %>% summarize(nTows=length(unique(TowID)))
+
+var.names=c("lgth","nT90N","nT90W")
+q.names=c("qT90N","qT90W")
+var.names=c("lgth","nT0","nT90W")
+q.names=c("qT0","qT90W")
+
+Tots=Raw2Tots(SpecDf,var.names,q.names); 
+#Calculate proportion in T90W include on plots
+#Tots=Tots |> mutate(n=nT90N+nT90W,y=nT90W/n) |> filter(n>0) #
+Tots=Tots |> mutate(n=nT0+nT90W,y=nT90W/n) |> filter(n>0) #
+
+LOGLIKS(SpecDf,var.names,q.names)
+
+lgth.seq=seq(15,60,0.5) #Length sequence for predictions
+SplineFit=SplineSELECT(SpecDf,var.names,q.names,quasi=T)
+Fitted=predict(SplineFit,newdata=data.frame(lgth=lgth.seq),type="response")
+plot(lgth.seq,Fitted,type="l",xlab="Length (cm)",ylab="Catch share",
+     main=paste(species[Spec],"T90N and T90W"),ylim=c(0,1))
+points(Tots$lgth,Tots$y,pch=16)
+```
+
+
+## Bootstrap
+
+```{r Bootstrap, echo=F}
+#Define function that returns predictions (copy and paste above code)
+Predn=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names,q.names,quasi=T)
+  predict(SplineFit,newdata=data.frame(lgth=lgth.seq),type="response") 
+}
+
+nboot=400 #Number of bootstrap replicates
+BootPredns=bootSELECT(SpecDf,var.names,Predn,haul="TowID",nsim=nboot,
+                      gear="Gear",paired=F)
+
+BootPlot(BootPredns,lgth.seq,predn=Fitted,Data=Tots)
+```
+
+## Permutation test
+
+### Define useful permutation statistics
+
+```{r Permutation, echo=F, warning=F}
+#Define function that returns an appropriate test statistic(s)
+permLRT=function(data,var.names,q.names) { #No good with quasi=T)
+  SplineFit=SplineSELECT(data,var.names,q.names=NULL,quasi=T)
+  LogLiks=LOGLIKS(data,var.names,fixed=c(0.5,0.5))
+  LRT=2*(logLik(SplineFit)-LogLiks$null)
+  LRT0.5=2*(logLik(SplineFit)-LogLiks$fixed) 
+  c(LRT,LRT0.5) }
+permRsq=function(data,var.names,q.names) {
+  SplineFit=SplineSELECT(data,var.names,q.names=NULL,quasi=T)
+  summary(SplineFit)$r.sq }
+permCheck=function(data,var.names,q.names) {
+  Wk=data %>% group_by(Day,TowID) %>% summarize(Gear=unique(Gear)) 
+  Wk$Gear }
+```
+
+### Check the permutation functionality
+```{r}
+PermDf=Randomize(data=SpecDf, var.names[2:3], haul="TowID",
+                     paired=F, gear="Gear", q.names=q.names) #, block="Day")
+SpecDf %>% group_by(Day,TowID) %>% summarize(Gear=unique(Gear)) |> print(n=40)
+PermDf %>% group_by(Day,TowID) %>% 
+  summarize(Permuted=unique(Permuted),Gear=unique(permuted.Gear)) |> print(n=40)
+```
+
+
+
+permFunc=permRsq
+#permFunc=permCheck
+
+SpecDf %>% group_by(Day,TowID) %>% summarize(Gear=unique(Gear)) |> print(n=40)
+
+
+obsStat=permFunc(SpecDf,var.names,q.names)
+  
+nperm=400
+permStats=permSELECT(SpecDf,var.names,permFunc,haul="TowID",nsim=nperm,
+                     paired=F,gear="Gear",q.names=q.names,block="Day")
+
+permPval(obsStat,permStats)
+
+#Arguments for Randomize, for testing
+
+
+```
+

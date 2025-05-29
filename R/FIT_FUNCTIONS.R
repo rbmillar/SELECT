@@ -2,20 +2,55 @@
 # SELECT, splineSELECT & polySELECT
 
 #===============================================================================
-#' Fit selection curves to fishing gears using the SELECT method.
+#' Fit parametric selection curves to fishing gears using the SELECT method.
 #' @description SELECT is an acronym for the Share Each LEngths Catch Total method
-#' of Millar (1992). SELECT is a general statistical framework to  estimate the
-#' selectivity of trawls, hooks and gillnets from experimental data.
-#' @param data Catch data in SELECT format
+#' of Millar (1992). This is the method universally used for selectivity analysis
+#' of trawls, hooks and gillnets from experimental data. SELECT simply says that
+#' the catch data can be treated as proportions within each lengthclass.
+#'
+#' The `SELECT` functions fits a variety of parametric selection curves to
+#' catch data from various types of selectivity experiments.
+#' @param data Catch data in SELECT format. This is conventional format with columns
+#' for length and catch frequencies and possibly other variables (sampling fractions,
+#' haul ID, block ID). This format is also used for unpaired data whereby only
+#' the gear used in the haul has non-zero catch values and all other gears are given
+#' zero catch values (see [SELECT.FORMAT()]).
 #' @param var.names Character vector giving the variable names.
 #' The first name is always the length variable,
-#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
-#' @param q.name Character vector giving the names of sampling fractions, if any.
+#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB"). It is
+#' assumed that the experimental codend is given last.
+#' @param dtype Experimental design type. Can be `cc` for covered codend, `ec` for
+#' paired or unpaired designs with experimental and control gear, or `dc` for
+#' direct comparison whereby the relative fishing power is fixed. The latter is
+#' primarily used for multi-gear gillnet or hook studies, but can also be used for
+#' experimental vs control studies if it is desired to fix the relative power.
+#' @param stype Selection curve shape. Options include `logistic` and  `richards`
+#' for trawl gears, and the unimodal `norm.loc` (location varying by meshsize),
+#' `norm.sca` (scale vatying), `gamma`, `lognorm`, and bimodal `binorm.sca`
+#' and `bilognorm` for gillnets and hooks.
+#' @param sumHauls Logical indicating whether to sum the catch over hauls before
+#' fitting the curve. Summing, or not, makes no difference to the fit.
+#' @param q.names Character vector giving the names of sampling fractions, if any.
+#' @param Meshsize Numeric vector giving the mesh sizes for each gear. Can also be
+#' used with trawls if the control codend is possibly not fully non-selective,
+#' in which case the meshsizes of the control and experimental should be given.
+#' @param x0 Numeric vector giving the starting values for the parameters.
+#' Typically not required for `cc` and `dc` designs.
+#' @param rel.power Numeric vector giving the relative fishing power of each gear.
+#' @param penalty.func A function of the parameters to calculate a penalty term
+#' for inclusion in the objective function. Can be useful for stabilizing fits to
+#' messy data.
+#' @param verbose Logical indicating whether to print messages during the fit.
+#' @param control A list of control parameters for the `optim` optimizer.
+#' @param Fit Logical indicating whether to fit the model or just return the relevant
+#' values (log-likelihoods etc) evaluated at the starting values.
 #' @references Millar, R. B. (1992).
 #' Estimating the size-selectivity of fishing gear by conditioning on the
 #' total catch. Journal of the American Statistical Association. 87: 962-968.
+#' @return A list of class `SELECT` containing the fitted model, log-likelihoods,
+#' and other relevant objects
 #' @export
-SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
+SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
                  q.names=NULL,Meshsize=NULL,x0=NULL,rel.power=NULL,penalty.func=NULL,
                  verbose=FALSE,control=list(maxit=10000,reltol=1e-8),Fit=TRUE) {
   #SELECT.args=as.list(environment()) %>% discard(is.null)
@@ -23,6 +58,14 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
     stop('SELECT errror message: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
     stop('SELECT errror message: \n Scaling variable names must be character')
+  if(substr(dtype,1,2)=="ph") {
+    dtype="ec"
+    cat("\n Design specification `ph` is deprecated and
+       has been changed to `ec` (experimental/control) \n" ) }
+  if(substr(dtype,1,2)=="re") {
+    dtype="dc"
+    cat("\n Design specification `re` is deprecated and
+       has been changed to `dc` (direct comparison) \n" ) }
   dtype=substr(dtype,1,2)
   rtype=paste0(dtype,".",stype)
   r=propncurves(rtype) #Get propn catch curve function
@@ -31,16 +74,17 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
   #GearNames=paste0("n",1:nGears)
   #colnames(Data)=c("lgth",GearNames)
   #if(!is.null(q.names)) Data[,-1] = Data[,-1]/data[,q.names]
-  #if(useTots) Data=Data %>% group_by(lgth) %>%
+  #if(sumHauls) Data=Data %>% group_by(lgth) %>%
   #  summarize(across(all_of(GearNames),sum)) %>% data.frame()
-  Data=Raw2Tots(data,var.names,q.names=q.names,useTots=useTots)
+  Data=Raw2Tots(data,var.names,q.names=q.names,sumHauls=sumHauls)[,var.names]
   Counts=Data[,-1]
   Const=mchoose(Counts,log=T) #Constant for log-likelihoods
-  designTypes=c("relative","covered codend","paired haul","paired haul")
-  design=designTypes[match(dtype,c("re","cc","ph","un"))]
-  if(!(dtype %in% c("re","cc","ph","un")))
+  designTypes=c("direct comparison","covered codend","experimental/control","paired haul")
+  design=designTypes[match(dtype,c("dc","cc","ec","un"))]
+  if(!(dtype %in% c("dc","cc","ec","un")))
     stop('SELECT errror message: \ndesign must be one of "cc" (covered codend),
-     "ph" (paired haul), or "re" (relative - primarily for gillnets and hooks)')
+     "ec" (experimental/control), or "dc" (direct comparison - primarily for
+         gillnets and hooks)')
   rtype=paste0(dtype,".",stype)
   if(stype %in% c("logistic","richards") & is.null(Meshsize)) Meshsize=c(0,1)
   if(dtype=="un") Meshsize=c(1,1) #Arbitrary, since unrestricted
@@ -98,7 +142,7 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
 #' The first name is always the length variable,
 #' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
 #' @param q.name Character vector giving the names of sampling fractions, if any.
-#' @param Tots Total the (adjusted) catch over all tows?
+#' @param sumHauls Sum the (adjusted) catch over all hauls?
 #' @param q.ODadjust Over-dispersion adjustment. If TRUE (default) and the catches
 #' have been adjusted upwards due to sampling, then the summed catch numbers are
 #' adjusted downwards to have total equal to the actual number of fish measured.
@@ -116,13 +160,13 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",useTots=TRUE,
 #'
 #'
 #' @export
-SplineSELECT=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=T,
+SplineSELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
                  bs="cr",k=5,sp=NULL,quasi=FALSE,rm.zeros=TRUE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
     stop('SELECT errror \n Sampling fraction variable names must be character')
-  Data=Raw2Tots(data,var.names,q.names=q.names,Tots=Tots,q.ODadjust=q.ODadjust)
+  Data=Raw2Tots(data,var.names,q.names=q.names,sumHauls=sumHauls,q.ODadjust=q.ODadjust)
   vn=var.names
   formla=as.formula( paste0("cbind(",vn[3],",",vn[2],")","~s(",vn[1],",bs=bs,k=k)") )
   if(rm.zeros) Data=Data[Data[,2]+Data[,3]>0,]
@@ -146,13 +190,13 @@ SplineSELECT=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=T,
 #'
 #' @return List containing fitted values, overdispersion, wgt and dredge averaged fit.
 #' @export
-PolySELECT=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=T,
+PolySELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
                        quasi=F,wgt="AICc",All=TRUE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
     stop('SELECT errror \n Sampling fraction variable names must be character')
-  Data=Raw2Tots(data,var.names,q.names=q.names,Tots=Tots,q.ODadjust=q.ODadjust)
+  Data=Raw2Tots(data,var.names,q.names=q.names,sumHauls=sumHauls,q.ODadjust=q.ODadjust)
   if(wgt!="AICc") wgt="AIC" #Only two possibilities for now
   if(All) Sub=expression(eval(TRUE))
   if(!All) Sub=expression( dc(I(x^0),x,I(x^2),I(x^3),I(x^4)) )
@@ -184,12 +228,12 @@ PolySELECT=function(data,var.names,q.names=NULL,Tots=TRUE,q.ODadjust=T,
 
 #' Evaluate log-likelihoods from full, null and fixed models
 #' @export
-LOGLIKS=function(data,var.names,q.names=NULL,useTots=TRUE,fixed=NULL) {
+LOGLIKS=function(data,var.names,q.names=NULL,sumHauls=TRUE,fixed=NULL) {
   if(typeof(var.names)!="character")
     stop('SELECT errror message: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
     stop('SELECT errror message: \n Scaling variable names must be character')
-  Data=Raw2Tots(data,var.names,q.names=q.names,useTots=useTots)
+  Data=Raw2Tots(data,var.names,q.names=q.names,sumHauls=sumHauls)
   Counts=Data[,-1]
   Const=mchoose(Counts,log=T) #Constant for log-likelihoods
   CountTotals=apply(Counts,1,sum,na.rm=TRUE)

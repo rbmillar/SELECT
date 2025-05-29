@@ -1,25 +1,28 @@
 ## Bootstrap and randomization functions
 
 #' Bootstrap catch data
-#' @description Applies a double bootstrap to data in SELECT format and
+#' @description Applies a hierarchical (double) bootstrap to data in SELECT format and
 #' evaluates the vector valued function `statistic`. The returned value is a
-#' nsim by length(statistic) matrix of bootstrap statistics.
+#' `nsim` by `length(statistic)` matrix of bootstrap statistics.
 #'
-#' @param data Stacked matrix or dataframe of catches in SELECT format,
-#' @param haul Name of grouping variable containing the tow/haul/set id number.
-#' Vector of same length as number of rows in Data.
+#' @param data Stacked matrix or dataframe of catches in SELECT format.
+#' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
+#' @param statistic The numeric or vector-valued function to be applied to the bootstrapped data. This function would typically return fit parameters or fitted values.
+#' @param haul Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.
+#' @param nsim Number of bootstrap replicates to be performed.
+#' @param paired Logical. This is a required parameter. Set to `TRUE` if the data are paired, `FALSE` otherwise.
 #' @param block If specified, name of blocking variable.
-#' Bootstrapping is first done over blocks, and then sets within each block.
+#' Bootstrapping is first done over blocks, and then hauls within each block.
+#' For example, day of deployment.
 #' @param gear If specified, name of the gear indicator variable.
-#' This restricts bootstrapping of sets to within each gear and is
-#' for use with non-paired data.
-#' @param paired Logical True if the data are paired
-#' @param verbose If set to 0 will suppress messages and progress bar.
-#' If >1 will also print the value of `statistic` for the observed `data`.
+#' This is required for use with non-paired data.
+#' @param within.resamp Logical. If `TRUE`, then bootstrap resampling is also done at the observatin level within each haul (i.e., double aka, hierarchical bootstrap).
+#' @param verbose If set to 0 then messages and the progress bar will be suppressed. If >1 the value of `statistic` for the observed `data` will be printed.
 #' @param ... Other parameters to be passed to the `statistic` function. E.g.,
-#' q.names (sampling fractions) if applicable.
+#' q.names (sampling fractions) if `statistic` has been defined to take `q.names` as an argument.
+#' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap statistics.
 #' @export
-bootSELECT=function(data,var.names,statistic,haul=NULL,nsim=2,paired=NULL,
+bootSELECT=function(data,var.names,statistic,haul=NULL,paired=NULL,nsim=2,
                      block=NULL,gear=NULL,within.resamp=TRUE,verbose=1,...) {
   if(is.null(haul)) stop("The name of the haul variable is required.")
   if(is.null(paired)) stop("The value of paired (TRUE or FALSE) is required")
@@ -59,11 +62,22 @@ bootSELECT=function(data,var.names,statistic,haul=NULL,nsim=2,paired=NULL,
 
 
 #' Permute catch data
-#' @description Permutes data in SELECT format and returns the value of the user
-#' supplied function`statistic`in a nsim by length(statistic) matrix
+#' @description Permutes catch data in SELECT format and returns the value of the user
+#' supplied function`statistic`. The returned value is a `nsim` by `length(statistic)` matrix of statistics.
+#' #'
+#' @param data Stacked matrix or dataframe of catches in SELECT format.
+#' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
+#' #' @param statistic The numeric or vector-valued function to be applied to the permuted data. This function would typically be a fit or test statistic.
+#' @param haul Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.
+#' @param nsim Number of permutations  to be performed.
+#' @param paired Logical. This is a required parameter. Set to `TRUE` if the data are paired, `FALSE` otherwise.
+#' @param block If specified, name of blocking variable. For example, day of deployment. Permuting is then restricted to being within each block.
+#' @param gear If specified, name of the gear indicator variable.
+#' This is required for use with non-paired data.
+#' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap
 #' @export
 permSELECT=function (data,var.names,statistic,haul="haul",paired=NULL, nsim=2,
-                     gear=NULL,block=NULL,...)
+                     block=NULL,gear=NULL,...)
 {
   #data=obj$data; var.names=obj$var.names; z=try( statistic(data,...) )
   if(is.null(paired)) stop("The value of paired (TRUE or FALSE) is required")
@@ -114,7 +128,7 @@ SafeSample=function(x,replace=T) {
 }
 
 
-#' Return a dataframe containing double bootstrapped raw data.
+#' Return a SELECT format dataframe containing hierarchical (double) bootstrapped catch data.
 #' @description Double bootstrap function used by bootSELECT function
 #'
 #' @param data Stacked matrix or dataframe of catches in SELECT format,
@@ -130,7 +144,8 @@ SafeSample=function(x,replace=T) {
 #' @param within.resamp If F, no resampling at observation level.
 #' @param smooth Smooth at within-haul phase to avoid losing degrees of freedom (from increasing number of zero freqs)
 #'
-#' @return Dataframe of double-bootstrapped freqs
+#' @return A list object with two components. The first is the bootstrapped dataframe in SELECT format, and the second is a vector containing the bootstrapped `haul` IDs.
+#' and
 #' @export
 #'
 
@@ -192,19 +207,20 @@ Dble.boot=function(data,haul="Haul",block=NULL,gear=NULL,
 }
 
 #' Produce the bootstrap plot
-#' @description ggplot showing fitted curve and bootstrap bounds
+#' @description Uses ggplot to produce a grob (graphical object) displaying the fitted curve and pointwise bootstrap confidence intervals.
 #'
-#' @param BootPreds Matrix with bootstrap by row and fitted values at length in columns.
-#' @param lenseqs Lengths at which fitted values are calculated.
+#' @param BootPreds Matrix with bootstraps by row and fitted values at length in columns, as produced by bootSELECT.
+#' @param lenseqs Lengths at which fitted values were calculated.
 #' @param predn Fitted curve
-#'
+#' @param If provided the data are added to the plot. The length variable must have the name `lgth` and the catch proportion variable `y`.
+#' @param eps The quantiles for the lower and upper bootstrap confidence limits are `eps` and 1-`eps`. Default is 95% intervals.
+#' @param txt Size of text used in the plot axes.
 #' @return ggplot GROB
 #' @export
 #'
 
 BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
                   xlab="Length (cm)",ylab="Catch proportion") {
-  txt=txt
   Preds.lower=apply(BootPreds,2,quantile,prob=eps,na.rm=T)
   Preds.upper=apply(BootPreds,2,quantile,prob=1-eps,na.rm=T)
   Pdf=data.frame(len=lenseq,pred=predn,low=Preds.lower,upp=Preds.upper)
@@ -222,12 +238,11 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 
 
 #' Return a permuted SELECT format dataframe
-#' @description Randomization of gear type within each haul.
-#' Currently limited to two gears.
+#' @description Randomly permutes gear type. If the experiment is paired haul then permutation is solely within each paired haul. If unpaired then permutation is across all hauls, possibly within blocks. Currently limited to two gears.
 #'
 #' @param data Matrix or dataframe of catches in SELECT format
 #' @param freq.names Character vector giving the names of the two catch frequency variables
-#' @param haul Character value giving the haul variable name. This must be UNIQUE for all hauls.
+#' @param haul Character value giving the haul variable name. This must be unique for all hauls.
 #' @param paired Logical. True if the data are paired
 #' @param block Character value giving blocking variable. Only used if `paired=FALSE`
 #'
@@ -269,16 +284,25 @@ Randomize=function(data,freq.names=c("n1","n2"),haul="haul",
     permgrp = haulgrp %>% slice_sample(n=nHauls)
     #Identify which hauls are permuted
     permuted.hauls=haulgrp$haul[haulgrp$grp!=permgrp$grp]
-    #Identify the permuted rows in the data frame, and permute
-    permuted.obs=(Wk$haul %in% permuted.hauls)
-    data$Permuted=permuted.obs
-    data[permuted.obs,freq.names]=data[permuted.obs,rev(freq.names)]
+    #Identify the permuted rows in the data frame, p.obs
+    p.obs=(Wk$haul %in% permuted.hauls)
+    #Create new variables Permuted (T or F) and permGear (gear name)
+    data$Permuted=p.obs
+    Gears=unique(Wk$gear)
+    permGear=paste0("permuted.",gear)
+    data[,permGear]=data[,gear]
+    data[p.obs,permGear]=ifelse(data[p.obs,permGear]==Gears[1],Gears[2],Gears[1])
+    #Permute the frequencies and sampling fractions
+    data[p.obs,freq.names]=data[p.obs,rev(freq.names)]
     if(!is.null(q.names))
-      data[permuted.obs,q.names]=data[permuted.obs,rev(q.names)]
+      data[p.obs,q.names]=data[p.obs,rev(q.names)]
   }
   return(as.data.frame(data))
 }
 
+#' Calculate the permutation p-value
+#'
+#' @description Convenience function to evaluate the permutation p-value by comparing the observed value of the statistic, `ObsStat`, to the permuted values in `PermOut`.
 #' @export
 #'
 permPval=function(ObsStat,PermOut,signif="greater",includeObs=FALSE) {

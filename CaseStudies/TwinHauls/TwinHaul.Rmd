@@ -1,0 +1,110 @@
+---
+title: "SELECT package demonstration   \n   Twin haul"
+output: word_document
+---
+
+## Summary
+
+**This case study demonstrates:**
+
+-   Estimating logistic and Richards selection curves from twin-haul data. 
+-   Fitting to catch-share curves.
+-   Using combined individual-haul data to estimate over-dispersion (due to
+    causes such as sub-sampling, between-haul variability and non-independent
+    behaviour of fish).
+-   Using the bootstrap and over-dispersion adjustments.
+
+### Data source
+
+The data are for Eastern king prawn selectivity in a 20 mm square-mesh penaeid trawl (Broadhurst et al., 2004. Selectivity of conventional diamond- and novel square-mesh
+codends in an Australian estuarine penaeid-trawl fishery. Fisheries Research, 67: 183-194). 
+
+```{r, echo=F}
+knitr::opts_chunk$set(fig.height = 3.5)
+knitr::include_graphics("TwinTrawl.jpg")
+```
+
+```{r, warning=F, message=F, echo=-1}
+#devtools::install( paste0("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT") )
+require(SELECT)
+require(dplyr)
+```
+
+### Input the data
+```{r}
+#Read in data and remove zero catch lengths
+sqKP.df=read.csv("../Data/SqNorKP.csv",header=T) #500 by 4
+sqKP.df=subset(sqKP.df,control+codend>0) #192 by 4
+#Quick peek at data
+head(sqKP.df)
+```
+
+
+### Define variable names
+```{r}
+v.names=c("lgth","control","codend")
+```
+
+### Produce plot of catch-share proportions
+```{r}
+Tots=Raw2Tots(sqKP.df,v.names)
+Tots=transform(Tots,n=codend+control,y=codend/(codend+control)) 
+Tots
+plot(y~lgth,data=Tots,las=1)
+abline(h=0.5,lty=3)
+```
+
+### Fit logistic selection curve
+```{r}
+Logist.fit=SELECT(Tots,var.names=v.names,dtype="ec")
+plot(Logist.fit)
+ModelCheck(Logist.fit)
+Estimates(Logist.fit)
+```
+The logistic fit looks good.
+
+
+### Fit Richards curve
+```{r}
+Rich.fit=SELECT(Tots,var.names=v.names,dtype="ec",stype="richards")
+plot(Rich.fit)
+ModelCheck(Rich.fit)
+Estimates(Rich.fit)
+```
+
+Even without correcting for possible over-dispersion it is clear that the 
+extra complexity of the Richard curve is not needed.
+The logistic is good enough.
+
+## Correcting for over-dispersion
+
+### Produce a lattic plot of catch-share proportions by haul
+
+```{r, fig.height=5}
+HaulCatch=Raw2Tots(sqKP.df,v.names,sumHauls=F)
+HaulCatch=transform(HaulCatch,n=codend+control,y=codend/(codend+control)) 
+require(lattice) #For xyplot
+xyplot(y~lgth | PairID,data=HaulCatch)
+```
+
+The retention proportions are certainly highly variable, but it is hard to
+distinguish BHV from within-haul variability.
+
+### Fit a logistic selection curve to the combined individual pair data
+
+```{r}
+Logist.fit2=SELECT(sqKP.df,var.names=v.names,dtype="ec",sumHauls=F)
+ModelCheck(Logist.fit2, minE=5, plots=F)
+```
+
+The variance correction factor `Pearson.CF` shows that the actual variabilty is
+about twice that assumed under the binomial model.
+This is relatively low, and a bootstrap would probably over-estimate the
+standard errors.
+
+In this case it is preferable to do a simple over-dispersion adjustment to the
+raw standard errors.
+
+```{r}
+Estimates(Logist.fit,OD=2.08)
+```

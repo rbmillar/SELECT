@@ -1,0 +1,105 @@
+---
+title: "SELECT package demonstration   \n   Alternate haul"
+output: word_document
+---
+
+## Summary
+
+This is a simple case study that revisits the alternate haul data analysed
+in Wileman et al. (1996, Manual of Methods of Measuring the Selectivity of Towed
+Fishing Gears, ICES Coop Research Report, No 215).
+
+**This case study demonstrates:**
+
+-   The use of data that is provided within the `SELECT` package.
+-   Fixing the relative fishing power using the experimental design type 
+`dtype=re`.
+
+### Data source
+
+The data are originally from Pope et al. (1975, Manual of methods for fish stock
+assessment Part 111 Selectivity of fishing gear.FA0 Fish. Tech. Pap. (41) Rev. 1.)
+These are alternative haul catch data of haddock in an 87 mm diamond experimental
+codend alternating with a 35 mm control gear.
+
+The data are only given as totals summed over hauls, so no exploration of
+between-haul variability is possible. The data are included with the `SELECT`
+package.
+
+```{r, echo=F}
+knitr::opts_chunk$set(fig.height = 3.5)
+```
+
+```{r, warning=F, message=F}
+require(SELECT)
+require(dplyr)
+```
+
+### Load and inspect the data
+```{r}
+data(Pope)
+Pope
+```
+
+### Define variable names
+```{r}
+v.names=c("Lengths","nfine","nwide")
+```
+
+### Produce a plot of catch-share proportions
+```{r}
+Pope=transform(Pope,n=nfine+nwide,y=nwide/(nfine+nwide)) 
+plot(y~Lengths,data=Pope)
+abline(h=0.5,lty=3)
+```
+
+The experimental condend has catch share of 50% or more for all of the larger 
+lengths, indicating that it has higher fishing power than the control.
+
+### Fit logistic selection curve
+```{r}
+Logist.fit=SELECT(Pope,var.names=v.names,dtype="ph")
+plot(Logist.fit)
+ModelCheck(Logist.fit)
+Estimates(Logist.fit)
+```
+The logistic fit looks good. For completeness we'll do the Richards fit also.
+
+### Fit Richards curve
+```{r}
+Rich.fit=SELECT(Pope,var.names=v.names,dtype="ph",stype="richards")
+plot(Rich.fit)
+ModelCheck(Rich.fit)
+Estimates(Rich.fit)
+```
+
+There is very little difference between the logistic and Richards fits.
+
+The logistic is preferred, since even without being able to correct for 
+over-dispersion, AIC prefers the logistic. A likelihood-ratio test also
+would not reject goodness of fit of the logistic.
+
+
+## Fixing the split parameter
+
+This requires specifying the design type as relative, `re`.
+Also, meshsizes must be given, as well as start values for the optimizer.
+These start values are for the intercept and slope parameters of the logistic
+model, and the parameters of the above logistic fit can be used for this
+purpose.
+
+```{r, warning=F}
+#Get start values, x0
+Logist.fit$par
+
+EqualPower.fit=SELECT(Pope,var.names=v.names,dtype="re",
+                      Meshsize=c(35,87), x0=c(-27.6,0.92))
+plot(EqualPower.fit)
+ModelCheck(EqualPower.fit)
+Estimates(EqualPower.fit)
+```
+
+This is clearly not a good model.
+
+
+
