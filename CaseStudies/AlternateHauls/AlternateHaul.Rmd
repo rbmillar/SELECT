@@ -31,6 +31,7 @@ knitr::opts_chunk$set(fig.height = 3.5)
 ```
 
 ```{r, warning=F, message=F}
+#devtools::install_github("rbmillar/SELECT")
 require(SELECT)
 require(dplyr)
 ```

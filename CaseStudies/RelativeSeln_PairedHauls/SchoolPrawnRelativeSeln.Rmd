@@ -30,7 +30,7 @@ The data are for school prawn relative selectivity in penaeid trawls with differ
 ### Load required packages
 
 ```{r,warning=FALSE,message=F,echo=-1}
-#devtools::install( paste0("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT") )
+#devtools::install_github("rbmillar/SELECT")
 require(tidyverse)
 require(mgcv)
 require(SELECT)

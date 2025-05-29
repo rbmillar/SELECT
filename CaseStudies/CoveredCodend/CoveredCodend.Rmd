@@ -32,7 +32,7 @@ knitr::include_graphics("Stownet.jpg")
 ### Load required packages
 
 ```{r, warning=F, message=F, echo=-1}
-#devtools::install( paste0("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT") )
+#devtools::install_github("rbmillar/SELECT")
 require(SELECT)
 require(dplyr)
 ```
