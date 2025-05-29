@@ -1,0 +1,125 @@
+---
+title: "SELECT package demonstration   \n   Relative selectivity "
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+\small
+
+NOTE: The last paired haul (D6H4) of Conv-T34 has NA for paenaeid counts in Conv gear 
+- must be removed if fitting to totals.
+
+### Data source
+
+The data are for school prawn relative selectivity in penaeid trawls with differing mesh types of the side panel, 43 mm diamond, or 32 or 35 mm square (Broadhurst et al., 2018. T45 side panels improve penaeid-trawl selection. Fisheries Research, 204: 8-15). 
+
+```{r,warning=FALSE,echo=F}
+#Load required packages
+require(tidyverse)
+require(mgcv)
+require(SELECT)
+require(XLConnect)
+#require(data.table)
+#library(dplyr)
+#require(lme4)
+#require(gamm4)
+#source("R:/Russell_HD/CTU/BootstrapDf.R")
+```
+
+## Read in data
+```{r}
+wb <- loadWorkbook("Exp 18 LenFreqs.xlsx", create = FALSE)
+summary(wb)
+setMissingValue(wb,value="NA")
+Conv.df = readWorksheet(wb,sheet = "Conventional trawl")
+T32.df = readWorksheet(wb,sheet = "32 square trawl")
+T34.df = readWorksheet(wb,sheet = "34 square trawl")
+Conv.df = Conv.df |> rename(Haul=Day, nConv.S=No.school, sfConv.S=Sf.school,
+                            nConv.K=No.king, sfConv.K=Sf.king) 
+T32.df = T32.df |> rename(Haul=Day, n32.S=No.school, sf32.S=Sf.school,
+                            n32.K=No.king, sf32.K=Sf.king)  
+T34.df = T34.df |> rename(Haul=Day, n34.S=No.school, sf34.S=Sf.school,
+                            n34.K=No.king, sf34.K=Sf.king)
+```
+
+
+
+```{r}
+#Create dataframes for paired tows having conventional gear
+#Conventional and 32mm side gears
+Conv32.df = inner_join(Conv.df,T32.df,by=c("Haul","CL"))
+#Convert scaling factors to sampling fractions
+Conv32.df = Conv32.df |>
+   transform(qConv.S=1/sfConv.S,qConv.K=1/sfConv.K,
+             q32.S=1/sf32.S,q32.K=1/sf32.K) |> filter(CL>5 & CL<26)
+#Conventional and 35mm side gears
+Conv34.df = inner_join(Conv.df,T34.df,by=c("Haul","CL"))
+Conv34.df = Conv34.df |> filter(Haul != "D6H4")
+#Convert scaling factors to sampling fractions
+Conv34.df = Conv34.df |>
+   transform(qConv.S=1/sfConv.S,qConv.K=1/sfConv.K,
+             q34.S=1/sf34.S,q34.K=1/sf34.K) |> filter(CL>5 & CL<26)
+```
+
+
+
+
+```{r Define funcs}
+###Set up the boot function and the r-squared function
+CLseq=seq(5,25,1) #Sequence to use for predn
+Predn=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names,q.names,bs="cr",quasi=T,Tots=F,k=5,q.ODadjust=F)
+  predict(SplineFit,newdata=data.frame(CL=CLseq),type="response") }
+permRsq=function(data,var.names,q.names,k=4) {
+  SplineFit=SplineSELECT(data,var.names,q.names,k=k)
+  summary(SplineFit)$r.sq }
+```
+
+
+# Conventional vs 32 mm T45
+
+```{r}
+#Schoolies
+var.names=c("CL","nConv.S","n32.S")
+q.names=c("qConv.S","q32.S")
+TotDf=Raw2Tots(Conv32.df,var.names,q.names) |> 
+    transform(lgth=CL,y=n32.S/(nConv.S+n32.S))
+plot(y~lgth,data=TotDf,ylim=c(0,1),xlab="Carapace length (mm)")
+yhat=Predn(Conv32.df,var.names); yhat
+plot(CLseq,yhat)
+```
+
+##Bootstrap
+
+```{r, warning=F, message=F}
+Conv32.Out=bootSELECT(Conv32.df,var.names,Predn,haul="Haul",nsim=1000,
+                    paired=T)
+```
+
+```{r}
+BootPlot(Conv32.Out,CLseq,yhat,Data=TotDf)
+```
+
+# Conventional vs 34 mm T45 (To be completed)
+
+```{r}
+#Schoolies
+var.names=c("CL","nConv.S","n34.S")
+q.names=c("qConv.S","q34.S")
+TotDf=Raw2Tots(Conv34.df,var.names,q.names) |> 
+    transform(lgth=CL,y=n34.S/(nConv.S+n34.S))
+plot(y~lgth,data=TotDf,ylim=c(0,1),xlab="Carapace length (mm)")
+yhat=Predn(Conv34.df,var.names); yhat
+plot(CLseq,yhat)
+```
+##Bootstrap
+
+```{r, warning=F, message=F}
+Conv34.Out=bootSELECT(Conv34.df,var.names,Predn,haul="Haul",nsim=1000,
+                    paired=T)
+```
+```{r}
+BootPlot(Conv34.Out,CLseq,yhat,Data=TotDf)
+```
