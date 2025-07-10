@@ -1,4 +1,4 @@
-nadfadfa## Functions to fit SELECT models, including spline and model-averaged poly
+## Functions to fit SELECT models, including spline and model-averaged poly
 # SELECT, splineSELECT & polySELECT
 
 #===============================================================================
