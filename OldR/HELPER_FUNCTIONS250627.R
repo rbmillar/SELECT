@@ -61,7 +61,7 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
   AreLensUnique=(length(lens)==length(unique(lens)))
   if(plots[1]) { #Plot deviance residuals
   if(nmeshes>2&AreLensUnique) {
-    plot(1,1,xlim=range(lens),xlab=xlab,ylab="Mesh size",
+    plot(1,1,xlim=range(lens),xlab=xlab,ylab="Deviance residuals",
          ylim=range(Meshsize)+(pex/50)*c(-1,1)*(max(Meshsize)-min(Meshsize)),
          yaxt="n",type="n",...)
     axis(2,Meshsize,Meshsize)
@@ -245,56 +245,30 @@ Estimates=function(fit,OD=NULL) {
 
 #===============================================================================
 #' Plots the fitted curves and returns fitted values at specified lengths
-#' @description Plot the fitted selectivity curve(s),
-#' and return the fitted values if assigned to an object.
-#' @param fit Fitted SELECT model object
-#' @param plotlens Vector of lengths at which to calculate the fitted curves.
-#' @param Meshsize Vector of mesh sizes if desired to calculate fitted values
-#' at other meshsizes. Primarily for design type `dc`
-#' @rel.power rel.power Relative power for use with design type `dc`
-#' @param standardize Standardize the fitted values to a maximum value of 1.
-#' Default is F for design types `cc` and `ec`, and T for design type `dc`.
-#' @param Master For design type `dc`, if TRUE (default) then the master curve
-#' is used. This assumes geometric similarity and calculates retention as
-#' a function of length/meshsize.
-#' This should be set to F with `norm.loc` curves as these are not
-#' geometrically similar.
-#' @return A dataframe with fitted values at the specified lengths.
+#' @description Plot the fitted selectivity curve(s)
 #' @export
-PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,
-                    standardize=NULL,Master=T,plot.out=T,ylim=c(0,1),
-                    xlab="Length (cm)",ylab="Retention curve",type="l",...) {
+PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,standardize=F,
+                    plot.out=T,xlab="Length (cm)",ylab="Retention curve",type="l",
+                    ylim=c(0,1),...) {
   s=selncurves(fit$rtype) #Get selection curve function
-  lgthName=fit$var.names[1]
-  dtype=substr(fit$rtype,1,2)
   if(is.null(plotlens)) plotlens=fit$Data[,1]
   if(is.null(Meshsize)) Meshsize=fit$Meshsize
   if(is.null(rel.power)) pwr=fit$rel.power
-  if(is.null(standardize)) standardize=ifelse(dtype=="dc",T,F)
   smatrix=outer(plotlens,Meshsize,s,fit$par)
   smatrix=t(t(smatrix)*pwr)
   if(standardize) smatrix=smatrix/max(smatrix)
-  Df=as.data.frame(cbind(plotlens,smatrix))
   #Plot propn retained if only two gears
   if(plot.out){
-    if(dtype %in% c("cc","ec")) {
-      colnames(Df)=c(lgthName,paste0("Gear",1:length(Meshsize)))
+    if(length(Meshsize)==2) {
       plot(plotlens,smatrix[,2],ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
       abline(h=c(0.25,0.5,0.75),lty=3) }
-    if(dtype == "dc" & !Master)
-      matplot(plotlens,smatrix,ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
-    if(dtype == "dc" & Master) {
-      colnames(Df)=c(fit$var.names[1],Meshsize)
-      #r.df=as.data.frame(lensmatrix)
-      Df=pivot_longer(Df,cols=!all_of(lgthName),values_to="r",names_to="Msize")
-      Df=as.data.frame(Df)
-      Df$Msize=as.numeric(Df$Msize)
-      Df$v=Df[,lgthName]/Df$Msize
-      Df=Df[order(Df$v),]
-      plot(r~v,type=type,xlab="Length/Meshsize",ylab=ylab,data=Df)
-      }
+    else {
+      matplot(plotlens,smatrix,ylim=ylim,xlab=xlab,ylab=ylab,type=type,...) }
   }
-  invisible(Df)
+  lensmatrix=cbind(plotlens,smatrix)
+  colnames(lensmatrix)=c("Length",paste0("Gear",1:length(Meshsize)))
+  if(plot.out) invisible(lensmatrix)
+  if(!plot.out) lensmatrix
 }
 
 
@@ -314,20 +288,6 @@ nllhood=function(theta,Data,Meshsize,r,rel.power,penalty.func) {
   #nll=sum(byrow_dmultinom(Counts,prob=phi,log=T))
   nll=nll+penalty.func(theta)
   return(nll)
-}
-
-#===============================================================================
-#' Calculate quasi-AIC
-#' @description Adjusts the AIC of a fit for the given overdisperion `OD`.
-#' AICc is used if `correct=T`.
-#' @export
-qAIC=function(fit,OD,correct=F) {
-  Correction=0
-  if(correct) {
-    k=fit$rank
-    Correction=2*k*(k+1)/(fit$df.resid-1)
-  }
-  qAIC=-2*logLik(fit)/OD+2*(attributes(logLik(fit))$df)+Correction
 }
 
 
@@ -368,45 +328,22 @@ calcOD=function(O,E,npar,minE=1,verbose=T) {
   }
 
 #===============================================================================
-#' Initial parameter values for SELECT fits
-#' @description Tf SELECT is not provided with explicit initial parameter values
-#' values `x0` then crude data-driven starting values are generated.
-#' The user will have to provide explicit `x0` if these default value do not
-#' achieve convergence or a sensible fit.
-#' @details The starting values are based on the median and standard deviation
-#' of the lengths in the codend if the design type is `cc` or `ec`,
-#' or of the smallest mesh size if design type is `dc`.
-#'
-#'
+#' Initial parameter values for logistic and Richards curves
+#' @description Returns crude data-driven starting values for logistic and
+#' Richards curves
 #' @export
 StartValues=function(rtype,Data) {
-  if(substr(rtype,1,2)=="cc" | substr(rtype,1,2)=="ec") {
-    CodendMed=median(rep(Data[,1],Data[,3]))
-    CodendSd=sd(rep(Data[,1],Data[,3]))
-    b0=2*log(3)/CodendSd; a0=-b0*CodendMed
-    switch(substr(rtype,1,6),
+  CodendMean=mean(rep(Data[,1],Data[,3]))
+  CodendSd=sd(rep(Data[,1],Data[,3]))
+  b0=2*log(3)/CodendSd; a0=-b0*CodendMean
+  switch(substr(rtype,1,6),
          "cc.log"={ c(a0,b0) },
          "cc.ric"={ c(a0,b0,0) },
          "ec.log"={ c(a0,b0,0) },
          "ec.ric"={ c(a0,b0,0,0) },
          stop("Please provide a value of x0 (initial parameter values")
-    ) }
-  else {
-    Mesh1Med=median(rep(Data[,1],Data[,2]))
-    Mesh1Var=var(rep(Data[,1],Data[,2]))
-    Mesh1SD=sqrt(Mesh1Var)
-    CV=Mesh1SD/Mesh1Med
-    mu.sd=c(Mesh1Med,Mesh1SD)
-    lnorm.mu.sd=c(log(Mesh1Med),CV)
-    switch(substr(rtype,1,6),
-           "dc.nor"={ mu.sd },
-           "dc.log"={ lnorm.mu.sd },
-           "dc.gam"={ c(Mesh1Med^2/Mesh1Var,Mesh1Var/Mesh1Med) },
-           "dc.bin"={ c(0.9*mu.sd,1.1*mu.sd,0.5) },
-           "dc.bil"={ c(log(Mesh1Med)-0.1,CV,log(Mesh1Med)+0.1,CV,0.5) },
-           stop("Please provide a value of x0 (initial parameter values")
-    ) }
-  }
+  )
+}
 
 
 #===============================================================================
@@ -525,10 +462,10 @@ SELECT.FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NUL
   if(max(UniqueCheck$m)>1) {
      warning("Possible data error: There are multiple rows for a unique \n combination of ",
       c(by,gear),". A unique row ID variable has been added \n")
-     Df$uniqueRowID=1:nrow(Df)
+     Df$uniqueRowID=1:nrow(Df) 
      by=c("uniqueRowID",by) }
   if(is.null(q.name)) values=freq else values=c(freq,q.name)
-  Wk=Df |> select(all_of( c(by,gear,values) ))
+  Wk=Df |> select(all_of( c(by,gear,values) )) 
   Wk = Wk |>   pivot_wider(names_from=all_of(gear), #names_prefix=namePrefix,
                       values_from=all_of(values), values_fill=0, names_sep="")
   if(!paired) Wk[,gear]=Df[,gear]

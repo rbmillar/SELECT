@@ -12,8 +12,8 @@ Fishing Gears, ICES Coop Research Report, No 215).
 **This case study demonstrates:**
 
 -   The use of data that is provided within the `SELECT` package.
--   Fixing the relative fishing power using the experimental design type 
-`dtype=re`.
+-   Fixing the relative fishing power using the direct comparison 
+experimental design type `dtype=dc`.
 
 ### Data source
 
@@ -33,7 +33,7 @@ knitr::opts_chunk$set(fig.height = 3.5)
 ```{r, warning=F, message=F}
 #devtools::install_github("rbmillar/SELECT")
 require(SELECT)
-require(dplyr)
+require(tidyverse)
 ```
 
 ### Load and inspect the data
@@ -83,24 +83,32 @@ would not reject goodness of fit of the logistic.
 
 ## Fixing the split parameter
 
-This requires specifying the design type as relative, `re`.
-Also, meshsizes must be given, as well as start values for the optimizer.
-These start values are for the intercept and slope parameters of the logistic
-model, and the parameters of the above logistic fit can be used for this
-purpose.
+Fixing the value of the split parameter requires specifying the design type 
+as direct comparison, `dc`.
+Also, meshsizes must be given.
+
+The default is equal fishing power, i.e., 50/50 split. 
+If unequal then the relative fishing power is specified through a vector of 
+length two that is provided as the `rel.power` argument. 
+For example `rel.power=c(0.4,0.6)` means that the first and second mesh sizes
+have 40% and 60% split, respectively.
 
 ```{r, warning=F}
-#Get start values, x0
-Logist.fit$par
-
-EqualPower.fit=SELECT(Pope,var.names=v.names,dtype="re",
-                      Meshsize=c(35,87), x0=c(-27.6,0.92))
+#50/50 split
+EqualPower.fit=SELECT(Pope,var.names=v.names,dtype="dc",Meshsize=c(35,87))
 plot(EqualPower.fit)
 ModelCheck(EqualPower.fit)
 Estimates(EqualPower.fit)
+
+#40/60 split
+UnEqualPower.fit=SELECT(Pope,var.names=v.names,dtype="dc",
+                      Meshsize=c(35,87), rel.power=c(0.4,0.6))
+plot(UnEqualPower.fit)
+ModelCheck(UnEqualPower.fit)
+Estimates(UnEqualPower.fit)
 ```
 
-This is clearly not a good model.
+The equal fishing power model is clearly not a good fit.
 
 
 

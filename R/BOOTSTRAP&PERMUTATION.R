@@ -51,9 +51,8 @@ bootSELECT=function(data,var.names,statistic,haul=NULL,paired=NULL,nsim=2,
       print(head(bootData)) }
     if(class(boot.stat)[1]!="try-error") BootMatrix[i,]=boot.stat
   }
-  if(verbose) {
-    close(PBar)
-    cat("\nBootstrap successfully completed\n") }
+  if(verbose) close(PBar)
+  cat("\nBootstrap successfully completed\n")
   if(any(is.na(BootMatrix)))
     cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")
   invisible(BootMatrix)
@@ -77,22 +76,22 @@ bootSELECT=function(data,var.names,statistic,haul=NULL,paired=NULL,nsim=2,
 #' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap
 #' @export
 permSELECT=function (data,var.names,statistic,haul="haul",paired=NULL, nsim=2,
-                     block=NULL,gear=NULL,...)
+                     block=NULL,gear=NULL,verbose=1,...)
 {
   #data=obj$data; var.names=obj$var.names; z=try( statistic(data,...) )
   if(is.null(paired)) stop("The value of paired (TRUE or FALSE) is required")
   z = try(statistic(data,var.names,...))
-  if (class(z)[1] == "try-error")
-    stop("Error running statistic on actual data")
+  if(verbose>1) {
+    cat("\n The statistic function applied to the observed data is\n"); print(z) }
+  if(class(z)[1]=="try-error") stop("Error running on actual data")
   PermMatrix = matrix(NA, nrow = nsim, ncol = length(z))
   Freqs=var.names[-1] #lgth is not needed
-  cat(paste("\nStarting on", nsim, "permutations...\n"))
-  if (is.null(haul))
-    stop("haul is required.")
-  PBar <- txtProgressBar(min = 0, max = nsim, style = 3)
+  if (is.null(haul)) stop("haul is required.")
+  if(verbose) {
+    cat(paste("\nStarting on", nsim, "permutations...\n"))
+    PBar <- txtProgressBar(min = 0, max = nsim, style = 3) }
   for (i in 1:nsim) {
-    if (i%%5 == 0)
-      setTxtProgressBar(PBar, i)
+    if (verbose & i%%5 == 0) setTxtProgressBar(PBar, i)
     permData = Randomize(data,freq.names=Freqs,haul=haul,
                          paired=paired,gear=gear,block=block,...)
     perm.stat = try(statistic(permData,var.names,...))
@@ -103,7 +102,7 @@ permSELECT=function (data,var.names,statistic,haul="haul",paired=NULL, nsim=2,
     if (class(perm.stat)[1] != "try-error")
       PermMatrix[i, ] = perm.stat
   }
-  close(PBar)
+  if(verbose) close(PBar)
   cat("\nPermutations successfully completed\n")
   if (any(is.na(PermMatrix)))
     cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")

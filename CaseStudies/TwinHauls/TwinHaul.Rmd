@@ -12,7 +12,7 @@ output: word_document
 -   Using combined individual-haul data to estimate over-dispersion (due to
     causes such as sub-sampling, between-haul variability and non-independent
     behaviour of fish).
--   Using the bootstrap and over-dispersion adjustments.
+-   Using over-dispersion adjustments.
 
 ### Data source
 

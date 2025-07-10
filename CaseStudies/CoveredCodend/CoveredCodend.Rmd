@@ -165,3 +165,10 @@ AIC(Spline.fit)
 
 The spline fit has almost identical AIC as the Richards fit. It does a better
 job of fitting the proportions at the smaller carapace lengths.
+
+```{r Inspect the spline basis, echo=T, eval=T}
+xx=predict(Spline.fit,type="lpmatrix",
+           newdata=data.frame(lgth=seq(6,23,0.2)))
+matplot(xx,type="l")
+```
+

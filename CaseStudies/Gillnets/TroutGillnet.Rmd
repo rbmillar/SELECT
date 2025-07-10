@@ -10,7 +10,7 @@ editor_options:
 
 **This case study demonstrates:**
 
-1.  Fitting five different shapes of selection curves to gillnet data
+1.  Fitting six different shapes of selection curves to gillnet data
 2.  Use of `dtype=dc` for direct comparison experiments whereby relative fishing
 power is NOT being estimated. (The default is equal power, but it can be specified by the user.)
 3.  Use of `x0=` to give required start values for the optimizer
@@ -69,26 +69,29 @@ SEL2=SELECT(Counts,Vars,dtype="dc",
 stype="norm.sca",Meshsize=Meshs,x0=c(500,50)) 
 AIC2=AIC(SEL2,type="Poisson")
 
-SEL3=SELECT(Counts,Vars,dtype="dc", stype="lognorm",Meshsize=Meshs,x0=c(6,0.2))
+SEL3=SELECT(Counts,Vars,dtype="dc", stype="gamma",Meshsize=Meshs,x0=c(50,10))
 AIC3=AIC(SEL3,type="Poisson")
 
-SEL4=SELECT(Counts,Vars,dtype="dc",
-stype="binorm.sca",Meshsize=Meshs,x0=c(500,50,600,50,0))
+SEL4=SELECT(Counts,Vars,dtype="dc", stype="lognorm",Meshsize=Meshs,x0=c(6,0.2))
 AIC4=AIC(SEL4,type="Poisson")
 
 SEL5=SELECT(Counts,Vars,dtype="dc",
-stype="bilognorm",Meshsize=Meshs,x0=c(6.2,0.1,6.5,0.1,0))
+stype="binorm.sca",Meshsize=Meshs,x0=c(500,50,600,50,0))
 AIC5=AIC(SEL5,type="Poisson")
 
-cat("Poisson AICs are",AIC1,AIC2,AIC3,AIC4,AIC5)
+SEL6=SELECT(Counts,Vars,dtype="dc",
+stype="bilognorm",Meshsize=Meshs,x0=c(6.2,0.1,6.5,0.1,0))
+AIC6=AIC(SEL6,type="Poisson")
+
+cat("Poisson AICs are",AIC1,AIC2,AIC3,AIC4,AIC5,AIC6)
 ```
 
 The above SELECT fits show that the bimodal selectivity curves are preferred, and
-the binormal (`SEL4`) has the lowest Poisson AIC of 412.9.
+the binormal (`SEL5`) has the lowest Poisson AIC of 412.9.
 
 ### Check goodness of fit of preferred model
 ```{r}
-ModelCheck(SEL4)
+ModelCheck(SEL5)
 cat("Goodness of fit  p-value is",1-pchisq(80.6,67))           
 ```
 

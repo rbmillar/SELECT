@@ -1,4 +1,4 @@
-## Functions to fit SELECT models, including spline and model-averaged poly
+nadfadfa## Functions to fit SELECT models, including spline and model-averaged poly
 # SELECT, splineSELECT & polySELECT
 
 #===============================================================================
@@ -161,7 +161,7 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
 #'
 #' @export
 SplineSELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
-                 bs="cr",k=5,sp=NULL,quasi=FALSE,rm.zeros=TRUE) {
+                 bs="cr",k=7,sp=NULL,quasi=TRUE,rm.zeros=TRUE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
@@ -175,43 +175,65 @@ SplineSELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
   return(GamFit)
 }
 
-#===============================================================================
-## Weighted polynomial functions - could improve to use lgth var name (16/8/24)
+#==============================================================================
 
 #' Fit model averaged 4th order polynomial
-#' @description Fit model averaged 4th order polynomial
+#' @description Fit model averaged polynomials up to 4th order. The default is
+#' an improved version that is less prone to overfitting than the
+#' Herrmann et al. (2017, Fish. Res 185: 153-160) implementation,
 #'
-#' @param data Matrix with data in first three columns
-#' @param vars Column variable names if not vars=c("lgth","nC","nT")
-#' @param plens If specified, lengths at which to calculated fitted values.
-#' @param Quasi Logical, whether to apply quasibinomial correction
-#' @param wgt Weighting criterion. If not "AICc" then AIC is used
-#' @param All If not TRUE then only full models from null to 4th order are used.
+#' @param data Catch data in SELECT format
+#' @param var.names Character vector giving the variable names.
+#' The first name is always the length variable,
+#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
+#' @param q.name Character vector giving the names of sampling fractions, if any.
+#' @param sumHauls Sum the (adjusted) catch over all hauls?
+#' @param q.ODadjust Over-dispersion adjustment. If TRUE (default) and the catches
+#' have been adjusted upwards due to sampling, then the summed catch numbers are
+#' adjusted downwards to have total equal to the actual number of fish measured.
+#' This does not change catch share proportions, but will reduce potential
+#' overfitting of polynomial and spline curves due to overdispersion.
+#' @param quasi Logical, whether to apply an overdispersion correction
+#' @param wgt Weighting criterion. If not "AIC" then AICc is used.
+#' These are adjusted for overdispersion if quasi=TRUE.
+#' @param All If TRUE then the the Herrmann et al. (2017) approach of averaging
+#' all 32 submodels up to 4th order is used
+#' IF FALSE (the default) then only the five full models
+#' from null to 4th order are used. These models contain all lower order terms.
+#' This is consistent with model-dimension weighting used in the statistical
+#' literature, and in particular reduces the prior weight on the higher order
+#' polynomials, and hence wiggliness in the averaged model.
 #'
 #' @return List containing fitted values, overdispersion, wgt and dredge averaged fit.
 #' @export
 PolySELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
-                       quasi=F,wgt="AICc",All=TRUE) {
+                       quasi=T,wgt="AIC",All=FALSE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
     stop('SELECT errror \n Sampling fraction variable names must be character')
   Data=Raw2Tots(data,var.names,q.names=q.names,sumHauls=sumHauls,q.ODadjust=q.ODadjust)
-  if(wgt!="AICc") wgt="AIC" #Only two possibilities for now
+  if(wgt!="AIC") wgt="AICc" #Only two possibilities for now
   if(All) Sub=expression(eval(TRUE))
-  if(!All) Sub=expression( dc(I(x^0),x,I(x^2),I(x^3),I(x^4)) )
   vn=var.names
+  v1=vn[1]
+  #if(!All) Sub=expression( dc(I(x^0),x,I(x^2),I(x^3),I(x^4)) )
+  if(!All) Sub=parse(text= paste0( "dc(I(",v1,"^0),",v1,",I(",v1,"^2),",
+                                      "I(",v1,"^3)",    ",I(",v1,"^4))" ) )
+  formla=as.formula( paste0("y~I(",v1,"^0)+",v1,"+I(",v1,"^2)+",
+                            "I(",v1,"^3)",    "+I(",v1,"^4)-1") )
   Catch=Data
-  Catch$x=Catch[,vn[1]]
+  #Catch$x=Catch[,vn[1]]
   Catch$n=Catch[,vn[2]]+Catch[,vn[3]]
   Catch$y=Catch[,vn[3]]/Catch$n
   Catch$y[Catch$n==0]=0
   od=1
-  fit4=glm(y~I(x^0)+x+I(x^2)+I(x^3)+I(x^4)-1,family=binomial,weights=n,data=Catch)
+  #fit4=glm(y~I(x^0)+x+I(x^2)+I(x^3)+I(x^4)-1,family=binomial,weights=n,data=Catch)
+  fit4=glm(formla,family=binomial,weights=n,data=Catch)
+
   if(!quasi) {  fits=dredge(fit4 ,rank=wgt, subset=Sub) }
   if(quasi) {
-    qfit4=glm(y~I(x^0)+x+I(x^2)+I(x^3)+I(x^4)-1,family=quasibinomial,weights=n,
-              data=Catch)
+    qfit4=glm(formla,family=quasibinomial,weights=n,data=Catch)
     od=summary(qfit4)$dispersion
     #od=CalcOD(Catch,fitted(fit4),1)[[1]]
     if(wgt=="AIC")
@@ -219,7 +241,7 @@ PolySELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
     else fits=dredge(fit4, rank=function(fit) qAIC(fit,OD=od,correct=T),subset=Sub)
   }
   avg.fit=model.avg(fits,fit = T)
-  list(avg.fit=avg.fit,od=od,wgt,fits)
+  list(avg.fit=avg.fit,OD=od,wgt=wgt,fits=fits,Sub=Sub)
 }
 
 

@@ -39,10 +39,10 @@ plot.SELECT=function(obj,plotlens=NULL,npts=101,...) {
 }
 
 #' @export
-predict.SELECT=function(obj,newdata=NULL) {
-  if(!is.null(newdata) & !is.vector(newdata))
-    stop("Error: newdata must be a vector of lengths")
-  PlotCurves(obj,plotlens=newdata,plot.out=F) }
+predict.SELECT=function(obj,predlens=NULL,...) {
+  if(!is.null(predlens) & !is.vector(predlens))
+    stop("Error: predlens must be a vector of lengths")
+  PlotCurves(obj,plotlens=predlens,plot.out=F,...) }
 
 #' @export
 logLik.SELECT=function(obj,type="SELECT") {
