@@ -54,13 +54,13 @@ Note the sampling fractions `qcodend` and `qcover` - the catch was sub-sampled.
 
 ```{r}
 v.names=c("lgth","cover","codend")
-q.fracs=c("qcover","qcodend")
+q.names=c("qcover","qcodend")
 ```
 
 ### Produce a plot of retention proportions
 
 ```{r}
-Tots=Raw2Tots(Stow.df,v.names,q.fracs)
+Tots=Raw2Tots(Stow.df,v.names,q.names)
 Tots=transform(Tots,n=codend+cover,y=codend/(codend+cover)) 
 Tots
 plot(y~lgth,data=Tots) #las=1 gives horizontal y tick values
@@ -69,7 +69,7 @@ plot(y~lgth,data=Tots) #las=1 gives horizontal y tick values
 ### Fit a logistic selection curve, plot it, and do model checks
 
 ```{r}
-Logist.fit=SELECT(Stow.df,var.names=v.names,q.names=q.fracs)
+Logist.fit=SELECT(Stow.df,var.names=v.names,q.names=q.names)
 plot(Logist.fit, xlab="Carapace length (mm)")
 ModelCheck(Logist.fit, xlab="Carapace length (mm)")
 Estimates(Logist.fit)
@@ -82,7 +82,7 @@ blocks of positive residuals. So, let's try an asymmetric Richards curve fit.
 ### Fit a Richards selection curve
 
 ```{r}
-Rich.fit=SELECT(Stow.df,var.names=v.names,q.names=q.fracs,stype="richards")
+Rich.fit=SELECT(Stow.df,var.names=v.names,q.names=q.names,stype="richards")
 plot(Rich.fit, xlab="Carapace length (mm)")
 ModelCheck(Rich.fit, xlab="Carapace length (mm)")
 Estimates(Rich.fit)
@@ -102,46 +102,49 @@ detected from the summed data**
 ### Produce a lattic plot of retention proportions by haul
 
 ```{r, fig.height=5}
-HaulCatch=Raw2Tots(Stow.df,v.names,q.fracs,sumHauls=F)
+HaulCatch=Raw2Tots(Stow.df,v.names,q.names,sumHauls=F)
 HaulCatch=transform(HaulCatch,n=codend+cover,y=codend/(codend+cover)) 
 require(lattice) #For xyplot
 xyplot(y~lgth | Haul,data=HaulCatch)
 ```
 
-Indeed, considerable between-haul variation is present.
+Indeed, considerable between-haul (BHV) variation is present.
 
-### Fit a Richards selection curve to the combined individual haul data
+### Fit a Richards selection curve to the combined individual-haul data
+
+Fitting to the combined individual-hauls data allows for proper detection
+of between-haul variability.
 
 ```{r}
-Rich.fit2=SELECT(Stow.df,var.names=v.names,q.names=q.fracs,stype="richards",
+Rich.fit2=SELECT(Stow.df,var.names=v.names,q.names=q.names,stype="richards",
                 sumHauls=F)
 ModelCheck(Rich.fit2, xlab="Carapace length (mm)", minE=5, plots=F)
 ```
 
-The variance correction factor `Pearson.CF` shows that the actual variabilty is
-about 11 times that assumed under the binomial model.
+The variance correction factor `Pearson.CF` shows that the actual variabilty 
+could about 10 times that assumed under the binomial model.
 
-This correction factor could be used to adjust the AICs to compare the logistic
-to the Richards fits. *(To be completed)*
-
-With this amount of variability a bootstrap should be reasonable.
+With this amount of variability a bootstrap should be reasonable for
+appropriately quantifying the variability in the estimated parameters.
+(The bootstrap over-estimates parameter uncertainty if BHV is slight.)
 
 ### Define function to return quantities of interest: L25, L50, L75 and SR
 
 ```{r}
-ParFunc=function(data,var.names) {
-  Rich.fit=SELECT(data,var.names,q.names=q.fracs,stype="richards")
+ParFunc=function(data,var.names,q.names){
+  Rich.fit=SELECT(data,var.names,q.names=q.names,stype="richards")
   Estimates(Rich.fit)[1:4,"par"]
 }
 #Check that it works
-ParFunc(Stow.df,v.names)
+ParFunc(Stow.df,v.names,q.names)
 ```
 
 ### Implement a bootstrap
 
 ```{r Bootstrap}
-nsim=100 #Using nsim=100 for demonstration. Set to at least 1000 in practice
-BootPars=bootSELECT(Stow.df,v.names,ParFunc,haul="Haul",paired=T,nsim=100)
+nsim=99 #Use at least 999 in practice
+BootPars=bootSELECT(Stow.df,v.names,q.names,ParFunc,haul="Haul",paired=T,
+                    nsim=nsim,verbose=F) #Use verbose=T to see progress
 cat("Bootstrap estimated standard errors are",apply(BootPars,2,sd))
 ```
 
@@ -155,7 +158,8 @@ here we explore whether the performance of a semiparametric fit using the
 
 ```{r, message=F, warning=F}
 require(mgcv)
-Spline.fit=SplineSELECT(Stow.df,var.names=v.names,q.names=q.fracs)
+Spline.fit=SplineSELECT(Stow.df,var.names=v.names,q.names=q.names,
+                        k=5,quasi=F)
 plot(Tots$lgth,resid(Spline.fit),type="h")
 abline(h=0)
 plot(y~lgth,data=Tots,xlab="Carapace length (mm)")
@@ -163,10 +167,10 @@ points(Tots$lgth,fitted(Spline.fit),type="l")
 AIC(Spline.fit)
 ```
 
-The spline fit has almost identical AIC as the Richards fit. It does a better
-job of fitting the proportions at the smaller carapace lengths.
+The spline fit achieves a nice fit, but does have somewhat higher AIC
+than the Richards. I
 
-```{r Inspect the spline basis, echo=T, eval=T}
+```{r Inspect the spline basis, echo=F, eval=F}
 xx=predict(Spline.fit,type="lpmatrix",
            newdata=data.frame(lgth=seq(6,23,0.2)))
 matplot(xx,type="l")

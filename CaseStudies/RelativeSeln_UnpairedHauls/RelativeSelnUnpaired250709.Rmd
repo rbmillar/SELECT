@@ -12,14 +12,13 @@ Here we re-use paired haul data but without the paired haul structure.
 
 With unpaired data, a data storage strategy is used whereby the
 data are put into an artificial paired format that creates a
-paired-haul format structure by pairing each haul with a ghost zero-catch haul 
+paired-haul structure by pairing each haul with a ghost zero-catch haul 
 with the other gear.
-
 Consequently, the `SELECT` curve fitting functions can be used without knowing
 whether the data are paired or unpaired. 
-The paired, or unpaired, nature of the data only becomes relevant
+The paired, or unpaired, nature of the data becomes relevant
 when using the bootstrap and permutation functions, 
-which now have a `paired` argument (default=`TRUE`).
+which have a `paired` argument (default=`TRUE`).
 
 **This case study demonstrates:**
 
@@ -56,35 +55,35 @@ require(tidyverse)
 require(mgcv)
 require(SELECT)
 require(readxl) #This package is installed with tidyverse
-nsim=999 #Number of bootstrap or permutation simulations. Should be >=999 in practice.
+nsim=1000 #Number of bootstrap or permutation simulations. Should be >=1000 in practice.
 ```
 
 ### Read in the data
   
-NOTES: In the code below
-
-- The `Day` variable is actually the unique twin-haul identifier, 
-and so is renamed to `Haul`.
-- `CommonHauls` is the set of twin-hauls that have the 32 mm and 35 mm gears. 
-These are thus the same data as used in the paired-haul case study, 
-but here are analysed as unpaired.
-
+NOTE: Paired haul D6H4 with conventional/T35 pairing has NAs for the
+penaeid counts in the conventional gear, and so must be removed 
 
 ```{r}
 GearA.df=read_excel("SchoolPrawnLenFreqs.xlsx", sheet = "32 square trawl")
 GearB.df=read_excel("SchoolPrawnLenFreqs.xlsx", sheet = "35 square trawl")
 CommonHauls=intersect(unique(GearA.df$Day),unique(GearB.df$Day))
 
+#Choice of hauls to use
+#filter(!Haul %in% CommonHauls) |>
+
 GearA.df = GearA.df |> 
            rename(Haul=Day, n=No.school)  |>  
-           filter(Haul %in% CommonHauls) |> 
+           filter(Haul %in% CommonHauls & Haul!="D6H4") |> 
             mutate(Haul=paste0(Haul,".A"),q=1/Sf.school,Gear="A") |> 
             select(-Sf.school)
 GearB.df = GearB.df |>  
            rename(Haul=Day, n=No.school) |> 
-           filter(Haul %in% CommonHauls) |> 
+           filter(Haul %in% CommonHauls & Haul!="D6H4") |> 
            mutate(Haul=paste0(Haul,".B"),q=1/Sf.school,Gear="B") |>
            select(-Sf.school)
+
+head(GearA.df)
+head(GearB.df)
 ```
 
 ### Stack the separate dataframes
@@ -92,10 +91,10 @@ GearB.df = GearB.df |>
 Note the conversion from sub-sampling scaling factors to sampling fractions
 and removal of CLs that are outside of the range of measured data.
 
-```{r, echo=-3}
+```{r}
 Df=rbind(GearA.df,GearB.df) #Stack the two dataframes
 Df = Df |> filter(CL>=5 & CL<=25)
-#Df |> group_by(Haul) |> summarise(n=sum(n/q)) #Check the haul totals
+Df |> group_by(Haul) |> summarise(n=sum(n/q)) #Check the haul totals
 ```
 ### Put into SELECT format
 
@@ -114,28 +113,27 @@ head(Gears.df)
 ### Define variable names
 ```{r}
 names(Gears.df)
-vNames=c("CL","nA","nB")
-qNames=c("qA","qB")
+var.names=c("CL","nA","nB")
+q.names=c("qA","qB")
 ```
 
 ###  Define a prediction function to be used with the bootstrap
 
 This fit used the `SplineSELECT` defaults, but more generally one may want
-to try other values of `k`, say 5 and 10. 
-
-NOTE: The code below is identical to the unpaired case.
+to try other values of `k`, say 5 and 10.
 
 ```{r}
 #Define the bootstrap prediction function
 CLseq=seq(5,25,0.5) #Carapace lengths to use for predn
-PrednFnc=function(data,var.names,q.names) {
-  SplineFit=SplineSELECT(data,var.names,q.names) #Defaults
+Predn=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names,q.names,bs="tp",
+                         quasi=T,sumHauls=T,k=7,q.ODadjust = T)
   predict(SplineFit,newdata=data.frame(CL=CLseq),type="response") }
 #Check that it works
-predn=PrednFnc(Gears.df,vNames,qNames)
+predn=Predn(Gears.df,var.names)
 
 #Plot predictions against observed proportions
-Tots.df=Raw2Tots(Gears.df,vNames,qNames) |> 
+Tots.df=Raw2Tots(Gears.df,var.names,q.names) |> 
      transform(lgth=CL, y=nB/(nA+nB))
 plot(y~CL,data=Tots.df,ylim=c(0,1),xlab="Carapace length (mm)",
      ylab="Gear B catch share")
@@ -143,15 +141,13 @@ points(CLseq,predn,type="l")
 abline(h=0.5,lty=3)
 ```
 
-
-
 ### Do the bootstrap of the catch share curve
 
 Note that it is necessary to provide the `gear` argument to `SELECT` 
 when analyzing unpaired data.
 
 ```{r Running bootstrap, warning=F, message=F}
-BootPreds=bootSELECT(Gears.df,vNames,qNames,PrednFnc,haul="Haul",nsim=nsim,
+BootPreds=bootSELECT(Gears.df,var.names,Predn,haul="Haul",nsim=nsim,
                   paired=F,gear="Gear",verbose=F)
 ```
 
@@ -161,49 +157,55 @@ BootPlot(BootPreds,CLseq,predn,Data=Tots.df) +
 ```
 
 
-## Permutation test(s)
 
-### Define a function to return permutation statistic(s)
+###  Define a goodness of fit function to be used with the permutation test
 
-For school prawns the commercial minimum landed carapace length is MLS=15 mm. 
-In this example `MLS=15` is passed to the `SplineStatistics` function so that 
-it will also calculate the ratio of
-the proportion of commercial sized prawns in gear B versus gear A.
-
-```{r}
-StatsFnc=function(data,var.names,q.names) {
-  SplineFit=SplineSELECT(data,var.names,q.names) #Defaults
-  SplineStatistics(SplineFit,MLS=15) }
+```{r, warning=F, message=F}
+#Define the deviance explained function
+DevExplained=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names,q.names,bs="tp",
+                         quasi=T,sumHauls=T,k=7,q.ODadjust = T)  
+  summary(SplineFit)$dev.expl }
 #Check that it works
-ObsStats=StatsFnc(Gears.df,vNames,qNames)
-ObsStats
+ObsDev=DevExplained(Gears.df,var.names)
+cat("Proportion of deviance explained is",ObsDev,"\n")
 ```
 
-### Do permutations
+```{r Running deviance permutation, warning=F, message=F}
+PermDev=permSELECT(Gears.df,var.names,DevExplained,haul="Haul",nsim=nsim,
+                  paired=F,gear="Gear",verbose=F)
+#Proportion of permuted gof values greater than the observed
+cat("The p-value for a CL effect is",mean(PermDev>ObsDev))
+```
+<!--
+###  Define a test statistic for catch comparion = 0.5
 
-```{r Running permutations, warning=F, message=F}
-PermStats=permSELECT(Gears.df,vNames,qNames,StatsFnc,haul="Haul",nsim=nsim,
-                   paired=F,gear="Gear",verbose=F) #Use verbose=T to see progress
-colnames(PermStats)=names(ObsStats) #To add column names to PermStats
+This test statistic is effectively assuming binomial log-likelihoods,
+though it may be that catches are non-integer due to over-dispersion
+adjustment.
+
+```{r, echo=F, eval=F}
+EqualLRT=function(data,var.names) {
+  SplineFit=SplineSELECT(data,var.names,q.names,bs="tp",
+                         quasi=T,sumHauls=T,k=7,q.ODadjust = T) 
+  yhat=fitted(SplineFit)
+  nTot=SplineFit$prior.weights
+  y=SplineFit$y
+  nA=nTot*(1-y) #nA is the catch in gear A
+  nB=nTot*y #nB is the catch in gear B
+  SplineLLhood=sum( nA*log(1-yhat) + nB*log(yhat) )
+  NullLLhood=sum( nA*log(0.5) + nB*log(0.5) )
+  LRT=2*(SplineLLhood-NullLLhood) }
+#Check that it works
+ObsLRT=EqualLRT(Gears.df,var.names)
+cat("LRT stat for catch equality is",ObsLRT,"\n")
 ```
 
-The `permPval` function is used to calculate the permutation p-values
-
-```{r}
-Stat="LRT" #Likelihood ratio test for a length effect
-cat("The observed",Stat,"is",ObsStats[Stat],"\n")
-pval=permPval(ObsStats[Stat],PermStats[,Stat])
-cat("The permutational p-value for a length effect is",pval,"\n")
-
-Stat="LRT0.5" #LRT for equivalence, i.e., catch comparison=0.5 for all lengths
-cat("The observed",Stat,"is",ObsStats[Stat],"\n")
-pval=permPval(ObsStats[Stat],PermStats[,Stat])
-cat("The permutational p-value for equivalence is",pval,"\n")
-
-Stat="PropnRatio" #Proportion of large fish in gear B compared to in gear A
-cat("The observed",Stat,"is",ObsStats[Stat],"\n")
-pval=permPval(ObsStats[Stat],PermStats[,Stat])
-cat("The permutational p-value for equal propns of large fish is",pval,"\n")
+```{r, warning=F, message=F}
+PermLRT=permSELECT(Gears.df,var.names,EqualLRT,haul="Haul",nsim=nsim,
+                    paired=F,gear="Gear",verbose=F)
+#Proportion of permuted LRTvalues greater than the observed
+cat("The p-value for equivalence of catches is",mean(PermLRT>ObsLRT),"\n")
 ```
 
-
+-->

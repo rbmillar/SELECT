@@ -1,12 +1,13 @@
 ## Bootstrap and randomization functions
 
 #' Bootstrap catch data
-#' @description Applies a hierarchical (double) bootstrap to data in SELECT format and
-#' evaluates the vector valued function `statistic`. The returned value is a
-#' `nsim` by `length(statistic)` matrix of bootstrap statistics.
+#' @description `bootSELECT` applies a hierarchical (double) bootstrap to data
+#' in SELECT format and evaluates the vector valued function `statistic`.
+#' The returned value is a nsim` by `length(statistic)` matrix of bootstrap statistics.
 #'
 #' @param data Stacked matrix or dataframe of catches in SELECT format.
 #' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
+#' @param q.names Character vector of length 2 containing the names of the sampling fractions.
 #' @param statistic The numeric or vector-valued function to be applied to the bootstrapped data. This function would typically return fit parameters or fitted values.
 #' @param haul Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.
 #' @param nsim Number of bootstrap replicates to be performed.
@@ -18,12 +19,10 @@
 #' This is required for use with non-paired data.
 #' @param within.resamp Logical. If `TRUE`, then bootstrap resampling is also done at the observatin level within each haul (i.e., double aka, hierarchical bootstrap).
 #' @param verbose If set to 0 then messages and the progress bar will be suppressed. If >1 the value of `statistic` for the observed `data` will be printed.
-#' @param ... Other parameters to be passed to the `statistic` function. E.g.,
-#' q.names (sampling fractions) if `statistic` has been defined to take `q.names` as an argument.
 #' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap statistics.
 #' @export
-bootSELECT=function(data,var.names,statistic,haul=NULL,paired=NULL,nsim=2,
-                     block=NULL,gear=NULL,within.resamp=TRUE,verbose=1,...) {
+bootSELECT=function(data,var.names,q.names=NULL,statistic,haul=NULL,paired=NULL,nsim=2,
+                     block=NULL,gear=NULL,within.resamp=TRUE,verbose=1) {
   if(is.null(haul)) stop("The name of the haul variable is required.")
   if(is.null(paired)) stop("The value of paired (TRUE or FALSE) is required")
   if(!paired&is.null(gear))
@@ -31,21 +30,22 @@ bootSELECT=function(data,var.names,statistic,haul=NULL,paired=NULL,nsim=2,
   if(!paired&!is.null(block))
     cat( crayon::red("WARNING: Bootstrapping over blocks with unpaired data",
         "is inappropriate unless gear efforts are the same in every block\n") )
-  #data=obj$data; var.names=obj$var.names; z=try( statistic(data,...) )
-  z=try( statistic(data,var.names,...) )
+  statistic.args = list(data=data,var.names=var.names)
+  if(!is.null(q.names)) statistic.args$q.names = q.names
+  z = try(do.call(statistic, statistic.args))
   if(verbose>1) {
     cat("\n The statistic function applied to the observed data is\n"); print(z) }
   if(class(z)[1]=="try-error") stop("Error running on actual data")
   BootMatrix=matrix(NA,nrow=nsim,ncol=length(z))
-  Freqs=var.names[-1] #lgth is not needed
   if(verbose) {
     cat(paste("\nStarting a",nsim,"resamples bootstrap...\n"))
     PBar <- txtProgressBar(min = 0, max = nsim, style = 3) }
   for(i in 1:nsim) {
     if(verbose & i%%5==0) setTxtProgressBar(PBar, i)
-    bootData=Dble.boot(data,haul,block,gear,Freqs,
+    bootData=Dble.boot(data,var.names,haul,block,gear,
                        paired=paired,within.resamp)$bootData
-    boot.stat=try( statistic(bootData,var.names,...) )
+    statistic.args$data = bootData
+    boot.stat=try(do.call(statistic, statistic.args))
     if(class(boot.stat)[1]=="try-error") {
       cat("\nError running on bootstrap",i,"data\n")
       print(head(bootData)) }
@@ -60,75 +60,8 @@ bootSELECT=function(data,var.names,statistic,haul=NULL,paired=NULL,nsim=2,
 
 
 
-#' Permute catch data
-#' @description Permutes catch data in SELECT format and returns the value of the user
-#' supplied function`statistic`. The returned value is a `nsim` by `length(statistic)` matrix of statistics.
-#' #'
-#' @param data Stacked matrix or dataframe of catches in SELECT format.
-#' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
-#' #' @param statistic The numeric or vector-valued function to be applied to the permuted data. This function would typically be a fit or test statistic.
-#' @param haul Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.
-#' @param nsim Number of permutations  to be performed.
-#' @param paired Logical. This is a required parameter. Set to `TRUE` if the data are paired, `FALSE` otherwise.
-#' @param block If specified, name of blocking variable. For example, day of deployment. Permuting is then restricted to being within each block.
-#' @param gear If specified, name of the gear indicator variable.
-#' This is required for use with non-paired data.
-#' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap
-#' @export
-permSELECT=function (data,var.names,statistic,haul="haul",paired=NULL, nsim=2,
-                     block=NULL,gear=NULL,verbose=1,...)
-{
-  #data=obj$data; var.names=obj$var.names; z=try( statistic(data,...) )
-  if(is.null(paired)) stop("The value of paired (TRUE or FALSE) is required")
-  z = try(statistic(data,var.names,...))
-  if(verbose>1) {
-    cat("\n The statistic function applied to the observed data is\n"); print(z) }
-  if(class(z)[1]=="try-error") stop("Error running on actual data")
-  PermMatrix = matrix(NA, nrow = nsim, ncol = length(z))
-  Freqs=var.names[-1] #lgth is not needed
-  if (is.null(haul)) stop("haul is required.")
-  if(verbose) {
-    cat(paste("\nStarting on", nsim, "permutations...\n"))
-    PBar <- txtProgressBar(min = 0, max = nsim, style = 3) }
-  for (i in 1:nsim) {
-    if (verbose & i%%5 == 0) setTxtProgressBar(PBar, i)
-    permData = Randomize(data,freq.names=Freqs,haul=haul,
-                         paired=paired,gear=gear,block=block,...)
-    perm.stat = try(statistic(permData,var.names,...))
-    if (class(perm.stat)[1] == "try-error") {
-      cat("\nError running on permutation", i, "data\n")
-      print(head(permData))
-    }
-    if (class(perm.stat)[1] != "try-error")
-      PermMatrix[i, ] = perm.stat
-  }
-  if(verbose) close(PBar)
-  cat("\nPermutations successfully completed\n")
-  if (any(is.na(PermMatrix)))
-    cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")
-  invisible(PermMatrix)
-}
-
-
-
-#' Crude weighted average (0.25,0.5,0.25) with immediate neighbours
-WgtAvg=function(y,w=c(0.25,0.5,0.25)) {
-  n=length(y)
-  y.left=c(y[1],y)
-  y.right=c(y,y[n])
-  wgt.y=w[2]*y+w[1]*y.left[1:n]+w[3]*y.right[2:(n+1)]
-  wgt.y
-}
-
-#' Avoid issue with sample from a single value
-SafeSample=function(x,replace=T) {
-  if(length(x)>1) x=sample(x,replace=replace)
-  return(x)
-}
-
-
-#' Return a SELECT format dataframe containing hierarchical (double) bootstrapped catch data.
-#' @description Double bootstrap function used by bootSELECT function
+#' Return a SELECT format dataframe of hierarchical (double) bootstrapped catch data.
+#' @description `Dble.boot` is the double bootstrap function used by `bootSELECT`.
 #'
 #' @param data Stacked matrix or dataframe of catches in SELECT format,
 #' with lengthclass in first column. Remaining columns are raw catch frequencies
@@ -147,10 +80,10 @@ SafeSample=function(x,replace=T) {
 #' and
 #' @export
 #'
-
-Dble.boot=function(data,haul="Haul",block=NULL,gear=NULL,
-                   Freqs=c("nfine","nwide"),paired=T,within.resamp=T,smooth=F) {
+Dble.boot=function(data,var.names,haul="Haul",block=NULL,gear=NULL,
+                   paired=T,within.resamp=T,smooth=F) {
   Data=as.data.frame(data) #So that code will work with a tibble
+  Freqs=var.names[-1] #Catch frequency variables
   if(smooth) w=c(1,2,1)/4
   Sets=Data[,haul]
   uniqSets=unique(Sets)
@@ -186,7 +119,6 @@ Dble.boot=function(data,haul="Haul",block=NULL,gear=NULL,
     }
   nRanSets=length(BootID)
   BootList=as.list(1:nRanSets)
-
   for(j in 1:nRanSets) BootList[[j]] <- Data %>% filter(Sets==BootID[j])
   if(within.resamp&smooth) {
     #Smooth to reduce number of zero obs
@@ -205,8 +137,12 @@ Dble.boot=function(data,haul="Haul",block=NULL,gear=NULL,
   return(list(bootData=bootData,BootID=BootID))
 }
 
+
+
+
 #' Produce the bootstrap plot
-#' @description Uses ggplot to produce a grob (graphical object) displaying the fitted curve and pointwise bootstrap confidence intervals.
+#' @description `bootPlot` uses ggplot to produce a grob (graphical object)
+#' displaying the fitted curve and pointwise bootstrap confidence intervals.
 #'
 #' @param BootPreds Matrix with bootstraps by row and fitted values at length in columns, as produced by bootSELECT.
 #' @param lenseqs Lengths at which fitted values were calculated.
@@ -217,7 +153,6 @@ Dble.boot=function(data,haul="Haul",block=NULL,gear=NULL,
 #' @return ggplot GROB
 #' @export
 #'
-
 BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
                   xlab="Length (cm)",ylab="Catch proportion") {
   Preds.lower=apply(BootPreds,2,quantile,prob=eps,na.rm=T)
@@ -236,8 +171,62 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 }
 
 
-#' Return a permuted SELECT format dataframe
-#' @description Randomly permutes gear type. If the experiment is paired haul then permutation is solely within each paired haul. If unpaired then permutation is across all hauls, possibly within blocks. Currently limited to two gears.
+
+#' Sample permutation distribution of a user-defined statistic
+#' @description `permSELECT` permutes catch data in SELECT format and returns the value of the user
+#' supplied function`statistic`. The returned value is a `nsim` by `length(statistic)` matrix of statistics.
+#' #'
+#' @param data Stacked matrix or dataframe of catches in SELECT format.
+#' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
+#' #' @param q.names Character vector of length 2 containing the names of the sampling fractions.
+#' #' @param statistic The numeric or vector-valued function to be applied to the permuted data. This function would typically be a fit or test statistic.
+#' @param haul Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.
+#' @param nsim Number of permutations  to be performed.
+#' @param paired Logical. This is a required parameter. Set to `TRUE` if the data are paired, `FALSE` otherwise.
+#' @param block If specified, name of blocking variable. For example, day of deployment. Permuting is then restricted to being within each block.
+#' @param gear If specified, name of the gear indicator variable.
+#' This is required for use with non-paired data.
+#' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap
+#' @export
+permSELECT=function (data,var.names,q.names=NULL,statistic,haul="haul",paired=NULL,
+                     nsim=2,block=NULL,gear=NULL,verbose=1)
+{
+  if(is.null(paired)) stop("The value of paired (TRUE or FALSE) is required")
+  statistic.args = list(data=data,var.names=var.names)
+  if(!is.null(q.names)) statistic.args$q.names = q.names
+  z = try(do.call(statistic, statistic.args))
+  if(verbose>1) {
+    cat("\n The statistic function applied to the observed data is\n"); print(z) }
+  if(class(z)[1]=="try-error") stop("Error running on actual data")
+  PermMatrix = matrix(NA, nrow = nsim, ncol = length(z))
+  if (is.null(haul)) stop("haul is required.")
+  if(verbose) {
+    cat(paste("\nStarting on", nsim, "permutations...\n"))
+    PBar <- txtProgressBar(min = 0, max = nsim, style = 3) }
+  for (i in 1:nsim) {
+    if (verbose & i%%5 == 0) setTxtProgressBar(PBar, i)
+    permData = Randomize(data,var.names,q.names,haul=haul,
+                         paired=paired,gear=gear,block=block)
+    statistic.args$data = permData
+    perm.stat = try(do.call(statistic, statistic.args))
+    if (class(perm.stat)[1] == "try-error") {
+      cat("\nError running on permutation", i, "data\n")
+      print(head(permData))
+    }
+    if (class(perm.stat)[1] != "try-error")
+      PermMatrix[i, ] = perm.stat
+  }
+  if(verbose) close(PBar)
+  cat("\nPermutations successfully completed\n")
+  if (any(is.na(PermMatrix)))
+    cat("CAUTION: Some fits did not converge - please check for NAs in output.\n")
+  invisible(PermMatrix)
+}
+
+
+
+#' Returns a permuted SELECT format dataframe
+#' @description `Randomize` randomly permutes gear type. If the experiment is paired haul then permutation is solely within each paired haul. If unpaired then permutation is across all hauls, possibly within blocks. Currently limited to two gears.
 #'
 #' @param data Matrix or dataframe of catches in SELECT format
 #' @param freq.names Character vector giving the names of the two catch frequency variables
@@ -248,9 +237,8 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 #' @return Dataframe, with randomized gear treatment within each haul
 #' @export
 #'
-
-Randomize=function(data,freq.names=c("n1","n2"),haul="haul",
-                   paired=TRUE,gear=NULL,block=NULL,q.names=NULL) {
+Randomize=function(data,var.names,q.names=NULL,haul="haul",
+                   paired=TRUE,gear=NULL,block=NULL) {
   if(paired==T&(!is.null(block)|!is.null(gear)))  cat("\n NOTE: gear and block
         variables will be ignored since permutation is within gear pairs\n")
   if(paired==F&is.null(gear)) Stop("\n ERROR: gear name is required
@@ -258,6 +246,7 @@ Randomize=function(data,freq.names=c("n1","n2"),haul="haul",
   Wk=data.frame(data)
   Wk$haul=as.factor(Wk[,haul])
   nHauls=length(unique(Wk$haul))
+  freq.names=var.names[-1]
   if(paired) {
     uniqHauls=unique(Wk[,haul])
     permList=as.list(1:nHauls)
@@ -299,17 +288,75 @@ Randomize=function(data,freq.names=c("n1","n2"),haul="haul",
   return(as.data.frame(data))
 }
 
+
+
+#' Compute permutation test statistics
+#' @description `SplineStatistics` calculates a variety of test statistics for use
+#' with permutation testing. The appropriate test statistic(s) to use will depend on
+#' the questions of interest. It does NOT assume that the SplineSELECT fit
+#' returns a log-likelihood and so still work when a quasi=T fit is used.
+#' @export
+SplineStatistics=function(SplineFit,MLS=NULL) {
+  if(!"gam" %in% class(SplineFit)) stop("Fitted model must be a gam")
+  D=summary(SplineFit)$dev.expl
+  yhat=fitted(SplineFit)
+  nBA=SplineFit$model[[1]] #Numbers in gear B (column 1) and A (column 2)
+  ybar=sum(nBA[,1])/sum(nBA); #verage catch share
+  n=nBA[,1]+nBA[,2]
+  y=nBA[,1]
+  PropnRatio=NA
+  if(!is.null(MLS)){
+    CL=SplineFit$model[[2]]
+    TotsBA=apply(nBA,2,sum)
+    MLSpropns=apply(nBA[CL>=MLS,],2,sum)/TotsBA
+    PropnRatio=MLSpropns[1]/MLSpropns[2]
+    names(PropnRatio)=NULL }
+  NullLLhood0.5=sum( dBinom(y,n,0.5,log=T) )
+  NullLLhood=sum( dBinom(y,n,ybar,log=T) )
+  SplineLLhood=sum( dBinom(y,n,yhat,log=T) )
+  FullLLhood=sum( dBinom(y,n,ifelse(n>0,y/n,0),log=T) )
+  LRT=2*(SplineLLhood-NullLLhood)
+  LRT0.5=2*(SplineLLhood-NullLLhood0.5)
+  ModelDev=2*(FullLLhood-SplineLLhood)
+  NullDev=2*(FullLLhood-NullLLhood)
+  NullDev0.5=2*(FullLLhood-NullLLhood0.5)
+  D=1-ModelDev/NullDev #Or, D=summary(SplineFit)$dev.expl
+  D0.5=1-ModelDev/NullDev0.5
+  Stats=c(DevExpl=D,DevExpl0.5=D0.5,null=NullLLhood, null0.5=NullLLhood0.5,
+          full=FullLLhood,model=SplineLLhood,LRT=LRT,LRT0.5=LRT0.5,
+          PropnRatio=PropnRatio,avg=ybar)
+}
+
+
+
+
 #' Calculate the permutation p-value
 #'
 #' @description Convenience function to evaluate the permutation p-value by comparing the observed value of the statistic, `ObsStat`, to the permuted values in `PermOut`.
 #' @export
 #'
-permPval=function(ObsStat,PermOut,signif="greater",includeObs=FALSE) {
+permPval=function(ObsStat,PermOut,signif="greater",includeObs=T,eps=1e-10) {
   nsim=length(PermOut)
-  permDiff=PermOut-ObsStat
+  permDiff=PermOut-ObsStat+ifelse(signif=="greater",eps,-eps)
   permSum=ifelse(signif=="greater",sum(permDiff>=0),sum(permDiff<=0))
   if(!includeObs) permPval=permSum/nsim else
     permPval=(permSum+1)/(nsim+1)
   return(permPval)
 }
 
+
+
+#' Crude weighted average (0.25,0.5,0.25) with immediate neighbours
+WgtAvg=function(y,w=c(0.25,0.5,0.25)) {
+  n=length(y)
+  y.left=c(y[1],y)
+  y.right=c(y,y[n])
+  wgt.y=w[2]*y+w[1]*y.left[1:n]+w[3]*y.right[2:(n+1)]
+  wgt.y
+}
+
+#' Avoid issue with sample from a single value
+SafeSample=function(x,replace=T) {
+  if(length(x)>1) x=sample(x,replace=replace)
+  return(x)
+}

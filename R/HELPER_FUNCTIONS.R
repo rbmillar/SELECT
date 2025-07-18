@@ -251,7 +251,7 @@ Estimates=function(fit,OD=NULL) {
 #' @param plotlens Vector of lengths at which to calculate the fitted curves.
 #' @param Meshsize Vector of mesh sizes if desired to calculate fitted values
 #' at other meshsizes. Primarily for design type `dc`
-#' @rel.power rel.power Relative power for use with design type `dc`
+#' @param rel.power Relative power for use with design type `dc`
 #' @param standardize Standardize the fitted values to a maximum value of 1.
 #' Default is F for design types `cc` and `ec`, and T for design type `dc`.
 #' @param Master For design type `dc`, if TRUE (default) then the master curve
@@ -410,17 +410,33 @@ StartValues=function(rtype,Data) {
 
 
 #===============================================================================
-#' Constant term in log-likelihood
-#'
+#' Calculate constant term in log-likelihood (including for non-integer counts)
+#' @description Returns the constant term for binomial or multinomial counts.
+#' The default is to return the logged constant.
+#' The counts do not need to be integer valued.
+#' @param O Matrix of observed counts
 #' @export
-mchoose=function(x,log=TRUE){
-  x=as.matrix(x)
-  if(ncol(x)==1) stop("x[] must have at least 2 columns")
-  rowN=apply(x,1,sum,na.rm=T)
+mchoose=function(O,log=TRUE){
+  O=as.matrix(O)
+  if(ncol(O)==1) stop("Data must have at least 2 columns")
+  rowN=apply(O,1,sum,na.rm=T)
   const=0
-  for(i in 1:nrow(x)) const=const+lgamma(rowN[i]+1)-sum(lgamma(x[i,]+1),na.rm=T)
+  for(i in 1:nrow(O)) const=const+lgamma(rowN[i]+1)-sum(lgamma(O[i,]+1),na.rm=T)
   if (log) return(const)
   else return(exp(const))
+}
+
+
+#===============================================================================
+#' Extended binomial density function that also works for non-integer counts
+#' @export
+dBinom=function(y,n,p,log=FALSE) {
+  if(any(y<0) | any(y>n)) stop("Infeasible data, y<0 or y>n")
+  log.const=lgamma(n+1)-lgamma(y+1)-lgamma(n-y+1)
+  log.prob=log.const+y*log(p)+(n-y)*log(1-p)
+  log.prob[(y==0&p==0)|(y==n&p==1)]=0
+  if (log) return(log.prob)
+  else return(exp(log.prob))
 }
 
 
@@ -532,5 +548,7 @@ SELECT.FORMAT=function(Df,by=c("haul","lgth"),gear="gear",freq="freq",q.name=NUL
   Wk = Wk |>   pivot_wider(names_from=all_of(gear), #names_prefix=namePrefix,
                       values_from=all_of(values), values_fill=0, names_sep="")
   if(!paired) Wk[,gear]=Df[,gear]
-  Wk
+  data.frame(Wk)
 }
+
+

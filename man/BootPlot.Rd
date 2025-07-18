@@ -32,5 +32,6 @@ BootPlot(
 ggplot GROB
 }
 \description{
-Uses ggplot to produce a grob (graphical object) displaying the fitted curve and pointwise bootstrap confidence intervals.
+\code{bootPlot} uses ggplot to produce a grob (graphical object)
+displaying the fitted curve and pointwise bootstrap confidence intervals.
 }

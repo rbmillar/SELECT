@@ -2,10 +2,15 @@
 % Please edit documentation in R/HELPER_FUNCTIONS.R
 \name{mchoose}
 \alias{mchoose}
-\title{Constant term in log-likelihood}
+\title{Calculate constant term in log-likelihood (including for non-integer counts)}
 \usage{
-mchoose(x, log = TRUE)
+mchoose(O, log = TRUE)
+}
+\arguments{
+\item{O}{Matrix of observed counts}
 }
 \description{
-Constant term in log-likelihood
+Returns the constant term for binomial or multinomial counts.
+The default is to return the logged constant.
+The counts do not need to be integer valued.
 }

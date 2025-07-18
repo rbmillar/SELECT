@@ -4,7 +4,7 @@
 \alias{permPval}
 \title{Calculate the permutation p-value}
 \usage{
-permPval(ObsStat, PermOut, signif = "greater", includeObs = FALSE)
+permPval(ObsStat, PermOut, signif = "greater", includeObs = T, eps = 1e-10)
 }
 \description{
 Convenience function to evaluate the permutation p-value by comparing the observed value of the statistic, \code{ObsStat}, to the permuted values in \code{PermOut}.

@@ -161,7 +161,7 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
 #'
 #' @export
 SplineSELECT=function(data,var.names,q.names=NULL,sumHauls=TRUE,q.ODadjust=T,
-                 bs="cr",k=7,sp=NULL,quasi=TRUE,rm.zeros=TRUE) {
+                 bs="tp",k=7,sp=NULL,quasi=TRUE,rm.zeros=TRUE) {
   if(typeof(var.names)!="character")
     stop('SELECT errror: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")

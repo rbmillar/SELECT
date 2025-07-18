@@ -69,7 +69,7 @@ messy data.}
 values (log-likelihoods etc) evaluated at the starting values.}
 }
 \value{
-A list of class \code{SELECT}containing the fitted model, log-likelihoods,
+A list of class \code{SELECT} containing the fitted model, log-likelihoods,
 and other relevant objects
 }
 \description{

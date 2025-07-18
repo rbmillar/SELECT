@@ -2,14 +2,14 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{Dble.boot}
 \alias{Dble.boot}
-\title{Return a SELECT format dataframe containing hierarchical (double) bootstrapped catch data.}
+\title{Return a SELECT format dataframe of hierarchical (double) bootstrapped catch data.}
 \usage{
 Dble.boot(
   data,
+  var.names,
   haul = "Haul",
   block = NULL,
   gear = NULL,
-  Freqs = c("nfine", "nwide"),
   paired = T,
   within.resamp = T,
   smooth = F
@@ -40,5 +40,5 @@ A list object with two components. The first is the bootstrapped dataframe in SE
 and
 }
 \description{
-Double bootstrap function used by bootSELECT function
+\code{Dble.boot} is the double bootstrap function used by \code{bootSELECT}.
 }

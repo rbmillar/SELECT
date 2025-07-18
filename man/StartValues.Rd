@@ -2,11 +2,18 @@
 % Please edit documentation in R/HELPER_FUNCTIONS.R
 \name{StartValues}
 \alias{StartValues}
-\title{Initial parameter values for logistic and Richards curves}
+\title{Initial parameter values for SELECT fits}
 \usage{
 StartValues(rtype, Data)
 }
 \description{
-Returns crude data-driven starting values for logistic and
-Richards curves
+Tf SELECT is not provided with explicit initial parameter values
+values \code{x0} then crude data-driven starting values are generated.
+The user will have to provide explicit \code{x0} if these default value do not
+achieve convergence or a sensible fit.
+}
+\details{
+The starting values are based on the median and standard deviation
+of the lengths in the codend if the design type is \code{cc} or \code{ec},
+or of the smallest mesh size if design type is \code{dc}.
 }

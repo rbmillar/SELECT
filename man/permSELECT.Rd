@@ -2,24 +2,26 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{permSELECT}
 \alias{permSELECT}
-\title{Permute catch data}
+\title{Sample permutation distribution of a user-defined statistic}
 \usage{
 permSELECT(
   data,
   var.names,
+  q.names = NULL,
   statistic,
   haul = "haul",
   paired = NULL,
   nsim = 2,
   block = NULL,
   gear = NULL,
-  ...
+  verbose = 1
 )
 }
 \arguments{
 \item{data}{Stacked matrix or dataframe of catches in SELECT format.}
 
 \item{var.names}{Character vector of length 3 containing the names of the length variable and catch variables.
+#' @param q.names Character vector of length 2 containing the names of the sampling fractions.
 #' @param statistic The numeric or vector-valued function to be applied to the permuted data. This function would typically be a fit or test statistic.}
 
 \item{haul}{Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.}
@@ -37,7 +39,7 @@ This is required for use with non-paired data.}
 A matrix of dimension \code{nsim} by \code{length(statistic)} containing the bootstrap
 }
 \description{
-Permutes catch data in SELECT format and returns the value of the user
+\code{permSELECT} permutes catch data in SELECT format and returns the value of the user
 supplied function\code{statistic}. The returned value is a \code{nsim} by \code{length(statistic)} matrix of statistics.
 #'
 }

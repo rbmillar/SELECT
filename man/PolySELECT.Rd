@@ -10,27 +10,46 @@ PolySELECT(
   q.names = NULL,
   sumHauls = TRUE,
   q.ODadjust = T,
-  quasi = F,
-  wgt = "AICc",
-  All = TRUE
+  quasi = T,
+  wgt = "AIC",
+  All = FALSE
 )
 }
 \arguments{
-\item{data}{Matrix with data in first three columns}
+\item{data}{Catch data in SELECT format}
 
-\item{wgt}{Weighting criterion. If not "AICc" then AIC is used}
+\item{var.names}{Character vector giving the variable names.
+The first name is always the length variable,
+followed by names of the raw catch variables. E.g., c("lgth","nA","nB")}
 
-\item{All}{If not TRUE then only full models from null to 4th order are used.}
+\item{sumHauls}{Sum the (adjusted) catch over all hauls?}
 
-\item{vars}{Column variable names if not vars=c("lgth","nC","nT")}
+\item{q.ODadjust}{Over-dispersion adjustment. If TRUE (default) and the catches
+have been adjusted upwards due to sampling, then the summed catch numbers are
+adjusted downwards to have total equal to the actual number of fish measured.
+This does not change catch share proportions, but will reduce potential
+overfitting of polynomial and spline curves due to overdispersion.}
 
-\item{plens}{If specified, lengths at which to calculated fitted values.}
+\item{quasi}{Logical, whether to apply an overdispersion correction}
 
-\item{Quasi}{Logical, whether to apply quasibinomial correction}
+\item{wgt}{Weighting criterion. If not "AIC" then AICc is used.
+These are adjusted for overdispersion if quasi=TRUE.}
+
+\item{All}{If TRUE then the the Herrmann et al. (2017) approach of averaging
+all 32 submodels up to 4th order is used
+IF FALSE (the default) then only the five full models
+from null to 4th order are used. These models contain all lower order terms.
+This is consistent with model-dimension weighting used in the statistical
+literature, and in particular reduces the prior weight on the higher order
+polynomials, and hence wiggliness in the averaged model.}
+
+\item{q.name}{Character vector giving the names of sampling fractions, if any.}
 }
 \value{
 List containing fitted values, overdispersion, wgt and dredge averaged fit.
 }
 \description{
-Fit model averaged 4th order polynomial
+Fit model averaged polynomials up to 4th order. The default is
+an improved version that is less prone to overfitting than the
+Herrmann et al. (2017, Fish. Res 185: 153-160) implementation,
 }

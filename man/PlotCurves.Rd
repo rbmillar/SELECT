@@ -9,15 +9,39 @@ PlotCurves(
   plotlens = NULL,
   Meshsize = NULL,
   rel.power = NULL,
-  standardize = F,
+  standardize = NULL,
+  Master = T,
   plot.out = T,
+  ylim = c(0, 1),
   xlab = "Length (cm)",
   ylab = "Retention curve",
   type = "l",
-  ylim = c(0, 1),
   ...
 )
 }
+\arguments{
+\item{fit}{Fitted SELECT model object}
+
+\item{plotlens}{Vector of lengths at which to calculate the fitted curves.}
+
+\item{Meshsize}{Vector of mesh sizes if desired to calculate fitted values
+at other meshsizes. Primarily for design type \code{dc}}
+
+\item{rel.power}{Relative power for use with design type \code{dc}}
+
+\item{standardize}{Standardize the fitted values to a maximum value of 1.
+Default is F for design types \code{cc} and \code{ec}, and T for design type \code{dc}.}
+
+\item{Master}{For design type \code{dc}, if TRUE (default) then the master curve
+is used. This assumes geometric similarity and calculates retention as
+a function of length/meshsize.
+This should be set to F with \code{norm.loc} curves as these are not
+geometrically similar.}
+}
+\value{
+A dataframe with fitted values at the specified lengths.
+}
 \description{
-Plot the fitted selectivity curve(s)
+Plot the fitted selectivity curve(s),
+and return the fitted values if assigned to an object.
 }

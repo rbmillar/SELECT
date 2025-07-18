@@ -88,24 +88,16 @@ as direct comparison, `dc`.
 Also, meshsizes must be given.
 
 The default is equal fishing power, i.e., 50/50 split. 
-If unequal then the relative fishing power is specified through a vector of 
+The relative fishing power is specified through a vector of 
 length two that is provided as the `rel.power` argument. 
-For example `rel.power=c(0.4,0.6)` means that the first and second mesh sizes
-have 40% and 60% split, respectively.
 
 ```{r, warning=F}
 #50/50 split
-EqualPower.fit=SELECT(Pope,var.names=v.names,dtype="dc",Meshsize=c(35,87))
+EqualPower.fit=SELECT(Pope,var.names=v.names,dtype="dc",
+                      Meshsize=c(3.5,8.7),rel.power=c(0.5,0.5))
 plot(EqualPower.fit)
 ModelCheck(EqualPower.fit)
 Estimates(EqualPower.fit)
-
-#40/60 split
-UnEqualPower.fit=SELECT(Pope,var.names=v.names,dtype="dc",
-                      Meshsize=c(35,87), rel.power=c(0.4,0.6))
-plot(UnEqualPower.fit)
-ModelCheck(UnEqualPower.fit)
-Estimates(UnEqualPower.fit)
 ```
 
 The equal fishing power model is clearly not a good fit.

@@ -2,32 +2,32 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{Randomize}
 \alias{Randomize}
-\title{Return a permuted SELECT format dataframe}
+\title{Returns a permuted SELECT format dataframe}
 \usage{
 Randomize(
   data,
-  freq.names = c("n1", "n2"),
+  var.names,
+  q.names = NULL,
   haul = "haul",
   paired = TRUE,
   gear = NULL,
-  block = NULL,
-  q.names = NULL
+  block = NULL
 )
 }
 \arguments{
 \item{data}{Matrix or dataframe of catches in SELECT format}
-
-\item{freq.names}{Character vector giving the names of the two catch frequency variables}
 
 \item{haul}{Character value giving the haul variable name. This must be unique for all hauls.}
 
 \item{paired}{Logical. True if the data are paired}
 
 \item{block}{Character value giving blocking variable. Only used if \code{paired=FALSE}}
+
+\item{freq.names}{Character vector giving the names of the two catch frequency variables}
 }
 \value{
 Dataframe, with randomized gear treatment within each haul
 }
 \description{
-Randomly permutes gear type. If the experiment is paired haul then permutation is solely within each paired haul. If unpaired then permutation is across all hauls, possibly within blocks. Currently limited to two gears.
+\code{Randomize} randomly permutes gear type. If the experiment is paired haul then permutation is solely within each paired haul. If unpaired then permutation is across all hauls, possibly within blocks. Currently limited to two gears.
 }

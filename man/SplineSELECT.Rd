@@ -10,10 +10,10 @@ SplineSELECT(
   q.names = NULL,
   sumHauls = TRUE,
   q.ODadjust = T,
-  bs = "cr",
-  k = 5,
+  bs = "tp",
+  k = 7,
   sp = NULL,
-  quasi = FALSE,
+  quasi = TRUE,
   rm.zeros = TRUE
 )
 }

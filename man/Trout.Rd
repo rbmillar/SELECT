@@ -12,14 +12,15 @@ Meshsize (vector of meshsizes)  respectively.
 data(Trout)
 }
 \description{
-Counts of trout from a five mesh gang of gillnets
+Counts of trout from a five mesh gang of gillnets,
+from Table 1 of Hansen et al. (1997)
 }
 \examples{
 data(Trout)
 }
 \references{
-Helser T. E., et al. (1963). Estimating gillnet selectivity
-using nonlinear response surface regression.
-Can. J. Fish. Aquat. Sci. 55: 1328-1337.
+Hansen et al. (1997). Gillnet selectivity for lake trout
+(Salvelinus namaycush) in Lake Superior.
+Canadian Journal of Fisheries and Aquatic Sciences, 54: 2483-2490.
 }
 \keyword{datasets}
