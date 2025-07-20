@@ -290,13 +290,32 @@ Randomize=function(data,var.names,q.names=NULL,haul="haul",
 
 
 
-#' Compute permutation test statistics
+#' Compute statistics suitable for permutation testing
 #' @description `SplineStatistics` calculates a variety of test statistics for use
 #' with permutation testing. The appropriate test statistic(s) to use will depend on
 #' the questions of interest. It does NOT assume that the SplineSELECT fit
 #' returns a log-likelihood and so still work when a quasi=T fit is used.
+#' @details
+#' This function returns several statistics, including:
+#' \itemize{
+#'   \item `DevExpl` - the proportion of deviance explained by the model
+#'   \item `EqualDevExpl` - the proportion of deviance explained by the model,
+#'   but with null model fitted with a constant catch share of `Equal`
+#'   \item `null` - the log-likelihood of the null model
+#'   \item `Equal` - the log-likelihood of the model with a constant catch share of `Equal`
+#'   \item `full` - the log-likelihood of the full model
+#'   \item `model` - the log-likelihood of the fitted model
+#'   \item `LRT` - the likelihood ratio test statistic comparing the fitted spline model
+#'    to the null model. Used to test for evidence of a length effect.
+#'   \item `EqualLRT` - the likelihood ratio test statistic comparing the fitted model
+#'   to the model with a constant catch share of `Equal`
+#'   \item `RatioPropnMLS` - the ratio (across the two gears) of the proportion of catch
+#'   that is of MLS or bigger.
+#'   \item `PropnGear2` - the average catch share in the second gear
+#' }
+#'
 #' @export
-SplineStatistics=function(SplineFit,MLS=NULL) {
+SplineStatistics=function(SplineFit,Equal=0.5,MLS=NULL) {
   if(!"gam" %in% class(SplineFit)) stop("Fitted model must be a gam")
   D=summary(SplineFit)$dev.expl
   yhat=fitted(SplineFit)
@@ -304,27 +323,27 @@ SplineStatistics=function(SplineFit,MLS=NULL) {
   ybar=sum(nBA[,1])/sum(nBA); #verage catch share
   n=nBA[,1]+nBA[,2]
   y=nBA[,1]
-  PropnRatio=NA
+  RatioPropnMLS=NA
   if(!is.null(MLS)){
     CL=SplineFit$model[[2]]
     TotsBA=apply(nBA,2,sum)
     MLSpropns=apply(nBA[CL>=MLS,],2,sum)/TotsBA
-    PropnRatio=MLSpropns[1]/MLSpropns[2]
-    names(PropnRatio)=NULL }
-  NullLLhood0.5=sum( dBinom(y,n,0.5,log=T) )
+    RatioPropnMLS=MLSpropns[1]/MLSpropns[2]
+    names(RatioPropnMLS)=NULL }
+  EqualLLhood=sum( dBinom(y,n,Equal,log=T) )
   NullLLhood=sum( dBinom(y,n,ybar,log=T) )
   SplineLLhood=sum( dBinom(y,n,yhat,log=T) )
   FullLLhood=sum( dBinom(y,n,ifelse(n>0,y/n,0),log=T) )
   LRT=2*(SplineLLhood-NullLLhood)
-  LRT0.5=2*(SplineLLhood-NullLLhood0.5)
+  EqualLRT=2*(SplineLLhood-EqualLLhood)
   ModelDev=2*(FullLLhood-SplineLLhood)
   NullDev=2*(FullLLhood-NullLLhood)
-  NullDev0.5=2*(FullLLhood-NullLLhood0.5)
+  EqualDev=2*(FullLLhood-EqualLLhood)
   D=1-ModelDev/NullDev #Or, D=summary(SplineFit)$dev.expl
-  D0.5=1-ModelDev/NullDev0.5
-  Stats=c(DevExpl=D,DevExpl0.5=D0.5,null=NullLLhood, null0.5=NullLLhood0.5,
-          full=FullLLhood,model=SplineLLhood,LRT=LRT,LRT0.5=LRT0.5,
-          PropnRatio=PropnRatio,avg=ybar)
+  EqualD=1-ModelDev/EqualDev
+  Stats=c(DevExpl=D,EqualDevExpl=EqualD,null=NullLLhood, Equal=EqualLLhood,
+          full=FullLLhood,model=SplineLLhood,LRT=LRT,EqualLRT=EqualLRT,
+          RatioPropnMLS=RatioPropnMLS,PropnGear2=ybar)
 }
 
 

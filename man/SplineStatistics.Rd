@@ -2,13 +2,32 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{SplineStatistics}
 \alias{SplineStatistics}
-\title{Compute permutation test statistics}
+\title{Compute statistics suitable for permutation testing}
 \usage{
-SplineStatistics(SplineFit, MLS = NULL)
+SplineStatistics(SplineFit, Equal = 0.5, MLS = NULL)
 }
 \description{
 \code{SplineStatistics} calculates a variety of test statistics for use
 with permutation testing. The appropriate test statistic(s) to use will depend on
 the questions of interest. It does NOT assume that the SplineSELECT fit
 returns a log-likelihood and so still work when a quasi=T fit is used.
+}
+\details{
+This function returns several statistics, including:
+\itemize{
+\item \code{DevExpl} - the proportion of deviance explained by the model
+\item \code{EqualDevExpl} - the proportion of deviance explained by the model,
+but with null model fitted with a constant catch share of \code{Equal}
+\item \code{null} - the log-likelihood of the null model
+\item \code{Equal} - the log-likelihood of the model with a constant catch share of \code{Equal}
+\item \code{full} - the log-likelihood of the full model
+\item \code{model} - the log-likelihood of the fitted model
+\item \code{LRT} - the likelihood ratio test statistic comparing the fitted spline model
+to the null model. Used to test for evidence of a length effect.
+\item \code{EqualLRT} - the likelihood ratio test statistic comparing the fitted model
+to the model with a constant catch share of \code{Equal}
+\item \code{RatioPropnMLS} - the ratio (across the two gears) of the proportion of catch
+that is of MLS or bigger.
+\item \code{PropnGear2} - the average catch share in the second gear
+}
 }

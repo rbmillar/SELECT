@@ -8,18 +8,16 @@ output:
 
 ## Summary
 
-Here we re-use paired haul data but without the paired haul structure.
-
-With unpaired data, a data storage strategy is used whereby the
+With unpaired data, `SELECT` uses a data storage strategy whereby catch
 data are put into an artificial paired format that creates a
 paired-haul format structure by pairing each haul with a ghost zero-catch haul 
-with the other gear.
+fromd the other gear.
 
 Consequently, the `SELECT` curve fitting functions can be used without knowing
 whether the data are paired or unpaired. 
 The paired, or unpaired, nature of the data only becomes relevant
 when using the bootstrap and permutation functions, 
-which now have a `paired` argument (default=`TRUE`).
+which now require the `paired=F` argument.
 
 **This case study demonstrates:**
 
@@ -42,11 +40,13 @@ knitr::opts_chunk$set(fig.height = 3.5)
 ### Data source
 
 The data are for school prawn relative selectivity in penaeid trawls from the
-experiments conducted by Broadhurst et al., (2018, 
+twin-trawl experiments conducted by Broadhurst et al., (2018, 
 T45 side panels improve penaeid-trawl selection. Fisheries Research, 204: 8-15). 
 
-Here, any actual paired haul structure is ignored, 
-and the hauls with the 32 m and 35 mm square side panels are treated as unpaired.
+Here, we use the T45 data from twin hauls that included a conventional
+diamond, but use only the T45 data. 
+That is, we treat the T45 catches in the 32 mm square mesh and 35 mm square mesh
+as independent unpaired hauls.
 
 ### Load required packages
 
@@ -77,14 +77,16 @@ CommonHauls=intersect(unique(GearA.df$Day),unique(GearB.df$Day))
 
 GearA.df = GearA.df |> 
            rename(Haul=Day, n=No.school)  |>  
-           filter(Haul %in% CommonHauls) |> 
+           filter(!Haul %in% CommonHauls) |> 
             mutate(Haul=paste0(Haul,".A"),q=1/Sf.school,Gear="A") |> 
             select(-Sf.school)
 GearB.df = GearB.df |>  
            rename(Haul=Day, n=No.school) |> 
-           filter(Haul %in% CommonHauls) |> 
+           filter(!Haul %in% CommonHauls) |> 
            mutate(Haul=paste0(Haul,".B"),q=1/Sf.school,Gear="B") |>
            select(-Sf.school)
+cat("Gears A and B have",length(unique(GearB.df$Haul)),
+    "and",length(unique(GearA.df$Haul)),"hauls respectively.\n")
 ```
 
 ### Stack the separate dataframes
@@ -94,7 +96,7 @@ and removal of CLs that are outside of the range of measured data.
 
 ```{r, echo=-3}
 Df=rbind(GearA.df,GearB.df) #Stack the two dataframes
-Df = Df |> filter(CL>=5 & CL<=25)
+Df = Df |> filter(CL>=5 & CL<=25) 
 #Df |> group_by(Haul) |> summarise(n=sum(n/q)) #Check the haul totals
 ```
 ### Put into SELECT format
@@ -151,7 +153,7 @@ Note that it is necessary to provide the `gear` argument to `SELECT`
 when analyzing unpaired data.
 
 ```{r Running bootstrap, warning=F, message=F}
-BootPreds=bootSELECT(Gears.df,vNames,qNames,PrednFnc,haul="Haul",nsim=nsim,
+BootPreds=bootSELECT(Gears.df,vNames,qNames,PrednFnc,haul="Haul",nsim=999,
                   paired=F,gear="Gear",verbose=F)
 ```
 
@@ -195,7 +197,7 @@ cat("The observed",Stat,"is",ObsStats[Stat],"\n")
 pval=permPval(ObsStats[Stat],PermStats[,Stat])
 cat("The permutational p-value for a length effect is",pval,"\n")
 
-Stat="LRT0.5" #LRT for equivalence, i.e., catch comparison=0.5 for all lengths
+Stat="EqualLRT" #LRT for equivalence, i.e., catch comparison=0.5 for all lengths
 cat("The observed",Stat,"is",ObsStats[Stat],"\n")
 pval=permPval(ObsStats[Stat],PermStats[,Stat])
 cat("The permutational p-value for equivalence is",pval,"\n")
@@ -206,4 +208,11 @@ pval=permPval(ObsStats[Stat],PermStats[,Stat])
 cat("The permutational p-value for equal propns of large fish is",pval,"\n")
 ```
 
+This example shows the loss of power when using unpaired data, compared to 
+using paired data. 
+
+The bootstrap plot does suggest that the 35 mm gear may be less selective for
+prawns ca. 12 to 13 mm CL. However, the permutation test shows that the 
+conclusion of a length effect would have occurred about 20% of the time even
+when there was no length effect.
 
