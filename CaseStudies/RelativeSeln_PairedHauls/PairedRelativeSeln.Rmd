@@ -44,8 +44,7 @@ sizes used for the side panel, 32 mm or 35 mm.
 ### Load required packages
 
 ```{r,warning=FALSE,message=F,echo=-(1:2)}
-#devtools::install("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT") 
-#devtools::install_github("rbmillar/SELECT",force=T)
+#devtools::install_github("rbmillar/SELECT")
 require(tidyverse)
 require(mgcv)
 require(SELECT)
@@ -115,7 +114,7 @@ try other values of `k`, say 5 and 10.
 #Define the bootstrap prediction function
 CLseq=seq(5,25,0.5) #Carapace lengths to use for predn
 PrednFnc=function(data,var.names,q.names) {
-  SplineFit=SplineSELECT(data,var.names,q.names) #Defaults
+  SplineFit=SplineSELECT(data,var.names,q.names) #Using spline defaults
   predict(SplineFit,newdata=data.frame(CL=CLseq),type="response") }
 #Check that it works
 predn=PrednFnc(Pairs.df,vNames,qNames)
@@ -175,12 +174,12 @@ cat("The observed",Stat,"is",ObsStats[Stat],"\n")
 pval=permPval(ObsStats[Stat],PermStats[,Stat])
 cat("The permutational p-value for a length effect is",pval,"\n")
 
-Stat="LRT0.5" #LRT for equivalence, i.e., catch comparison=0.5 for all lengths
+Stat="EqualLRT" #LRT for equivalence, i.e., catch comparison=0.5 for all lengths
 cat("The observed",Stat,"is",ObsStats[Stat],"\n")
 pval=permPval(ObsStats[Stat],PermStats[,Stat])
 cat("The permutational p-value for equivalence is",pval,"\n")
 
-Stat="PropnRatio" #Proportion of large fish in gear B compared to in gear A
+Stat="RatioPropnMLS" #Proportion of large fish in gear B compared to in gear A
 cat("The observed",Stat,"is",ObsStats[Stat],"\n")
 pval=permPval(ObsStats[Stat],PermStats[,Stat])
 cat("The permutational p-value for equal propns of large fish is",pval,"\n")
