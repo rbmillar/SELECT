@@ -35,7 +35,7 @@ bootSELECT(
 
 \item{block}{If specified, name of blocking variable.
 Bootstrapping is first done over blocks, and then hauls within each block.
-For example, day of deployment.}
+For example, the blocking variable could be day of deployment.}
 
 \item{gear}{If specified, name of the gear indicator variable.
 This is required for use with non-paired data.}
@@ -48,7 +48,15 @@ This is required for use with non-paired data.}
 A matrix of dimension \code{nsim} by \code{length(statistic)} containing the bootstrap statistics.
 }
 \description{
-\code{bootSELECT} applies a hierarchical (double) bootstrap to data
-in SELECT format and evaluates the vector valued function \code{statistic}.
-The returned value is a nsim\code{by}length(statistic)` matrix of bootstrap statistics.
+\code{bootSELECT} applies a hierarchical bootstrap to data
+in \code{SELECT} format and evaluates the vector valued function \code{statistic}.
+The returned value is a \code{nsim} by \code{length(statistic)} matrix of bootstrap statistics.
+Bootstrapping is first done across \code{haul}, and then (by default) within \code{haul}.
+
+The argument \code{block} is used to specify bootstrapping across and within blocks.
+For example, the blocking variable could be day, or region. See details below.
+
+The experiment may be paired of unpaired. In the latter case the \code{SELECT} format
+dataframe must contain a variable that indicates the gear type and this variable is
+used as the \verb{gear=} argument.
 }

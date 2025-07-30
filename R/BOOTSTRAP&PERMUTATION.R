@@ -1,9 +1,17 @@
 ## Bootstrap and randomization functions
 
 #' Bootstrap catch data
-#' @description `bootSELECT` applies a hierarchical (double) bootstrap to data
-#' in SELECT format and evaluates the vector valued function `statistic`.
-#' The returned value is a nsim` by `length(statistic)` matrix of bootstrap statistics.
+#' @description `bootSELECT` applies a hierarchical bootstrap to data
+#' in `SELECT` format and evaluates the vector valued function `statistic`.
+#' The returned value is a `nsim` by `length(statistic)` matrix of bootstrap statistics.
+#' Bootstrapping is first done across `haul`, and then (by default) within `haul`. 
+#' 
+#' The argument `block` is used to specify bootstrapping across and within blocks. 
+#' For example, the blocking variable could be day, or region. See details below.
+#'
+#' The experiment may be paired of unpaired. In the latter case the `SELECT` format
+#' dataframe must contain a variable that indicates the gear type and this variable is
+#' used as the `gear=` argument.
 #'
 #' @param data Stacked matrix or dataframe of catches in SELECT format.
 #' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
@@ -14,7 +22,7 @@
 #' @param paired Logical. This is a required parameter. Set to `TRUE` if the data are paired, `FALSE` otherwise.
 #' @param block If specified, name of blocking variable.
 #' Bootstrapping is first done over blocks, and then hauls within each block.
-#' For example, day of deployment.
+#' For example, the blocking variable could be day of deployment.
 #' @param gear If specified, name of the gear indicator variable.
 #' This is required for use with non-paired data.
 #' @param within.resamp Logical. If `TRUE`, then bootstrap resampling is also done at the observatin level within each haul (i.e., double aka, hierarchical bootstrap).
@@ -175,7 +183,14 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 #' Sample permutation distribution of a user-defined statistic
 #' @description `permSELECT` permutes catch data in SELECT format and returns the value of the user
 #' supplied function`statistic`. The returned value is a `nsim` by `length(statistic)` matrix of statistics.
-#' #'
+#' 
+#' The argument `block` is used to restrict permuting to within blocks. 
+#' For example, the blocking variable could be day, or region. See details below.
+#'
+#' The experiment may be paired of unpaired. In the latter case the `SELECT` format
+#' dataframe must contain a variable that indicates the gear type and this variable is
+#' used as the `gear=` argument.
+#' 
 #' @param data Stacked matrix or dataframe of catches in SELECT format.
 #' @param var.names Character vector of length 3 containing the names of the length variable and catch variables.
 #' #' @param q.names Character vector of length 2 containing the names of the sampling fractions.
@@ -183,7 +198,8 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,eps=0.025,txt=8,
 #' @param haul Name of the grouping variable identifying the haul. This could be a paired-haul in the case of twin or alternate design, in which case both gears must share the same haul identifier.
 #' @param nsim Number of permutations  to be performed.
 #' @param paired Logical. This is a required parameter. Set to `TRUE` if the data are paired, `FALSE` otherwise.
-#' @param block If specified, name of blocking variable. For example, day of deployment. Permuting is then restricted to being within each block.
+#' @param block If specified, name of blocking variable. For example, day of deployment. 
+#' Permuting is then restricted to being within each block.
 #' @param gear If specified, name of the gear indicator variable.
 #' This is required for use with non-paired data.
 #' @return A matrix of dimension `nsim` by `length(statistic)` containing the bootstrap

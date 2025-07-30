@@ -30,7 +30,8 @@ permSELECT(
 
 \item{nsim}{Number of permutations  to be performed.}
 
-\item{block}{If specified, name of blocking variable. For example, day of deployment. Permuting is then restricted to being within each block.}
+\item{block}{If specified, name of blocking variable. For example, day of deployment.
+Permuting is then restricted to being within each block.}
 
 \item{gear}{If specified, name of the gear indicator variable.
 This is required for use with non-paired data.}
@@ -41,5 +42,11 @@ A matrix of dimension \code{nsim} by \code{length(statistic)} containing the boo
 \description{
 \code{permSELECT} permutes catch data in SELECT format and returns the value of the user
 supplied function\code{statistic}. The returned value is a \code{nsim} by \code{length(statistic)} matrix of statistics.
-#'
+
+The argument \code{block} is used to restrict permuting to within blocks.
+For example, the blocking variable could be day, or region. See details below.
+
+The experiment may be paired of unpaired. In the latter case the \code{SELECT} format
+dataframe must contain a variable that indicates the gear type and this variable is
+used as the \verb{gear=} argument.
 }

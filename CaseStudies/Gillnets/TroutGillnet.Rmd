@@ -10,12 +10,11 @@ editor_options:
 
 **This case study demonstrates:**
 
-1.  Fitting six different shapes of selection curves to gillnet data
-2.  Use of `dtype=dc` for direct comparison experiments whereby relative fishing
+-  Fitting six different shapes of selection curves to gillnet data
+-  Use of `dtype=dc` for direct comparison experiments whereby relative fishing
 power is NOT being estimated. (The default is equal power, but it can be specified by the user.)
-3.  Use of `x0=` to give required start values for the optimizer
-4.  Model selection using AIC
-5.  Geometric similarity of selectivity curves
+-  Model selection using AIC
+-  Geometric similarity of selectivity curves
 
 ### Data source
 
@@ -62,25 +61,25 @@ Counts=Trout$Counts
 Vars=names(Counts)
 
 SEL1=SELECT(Counts,Vars,dtype="dc",
-stype="norm.loc",Meshsize=Meshs,x0=c(500,50)) 
+stype="norm.loc",Meshsize=Meshs) 
 AIC1=AIC(SEL1,type="Poisson")
 
 SEL2=SELECT(Counts,Vars,dtype="dc",
-stype="norm.sca",Meshsize=Meshs,x0=c(500,50)) 
+stype="norm.sca",Meshsize=Meshs) 
 AIC2=AIC(SEL2,type="Poisson")
 
-SEL3=SELECT(Counts,Vars,dtype="dc", stype="gamma",Meshsize=Meshs,x0=c(50,10))
+SEL3=SELECT(Counts,Vars,dtype="dc", stype="gamma",Meshsize=Meshs)
 AIC3=AIC(SEL3,type="Poisson")
 
-SEL4=SELECT(Counts,Vars,dtype="dc", stype="lognorm",Meshsize=Meshs,x0=c(6,0.2))
+SEL4=SELECT(Counts,Vars,dtype="dc", stype="lognorm",Meshsize=Meshs)
 AIC4=AIC(SEL4,type="Poisson")
 
 SEL5=SELECT(Counts,Vars,dtype="dc",
-stype="binorm.sca",Meshsize=Meshs,x0=c(500,50,600,50,0))
+stype="binorm.sca",Meshsize=Meshs)
 AIC5=AIC(SEL5,type="Poisson")
 
 SEL6=SELECT(Counts,Vars,dtype="dc",
-stype="bilognorm",Meshsize=Meshs,x0=c(6.2,0.1,6.5,0.1,0))
+stype="bilognorm",Meshsize=Meshs)
 AIC6=AIC(SEL6,type="Poisson")
 
 cat("Poisson AICs are",AIC1,AIC2,AIC3,AIC4,AIC5,AIC6)
@@ -98,7 +97,9 @@ cat("Goodness of fit  p-value is",1-pchisq(80.6,67))
 The above output from `ModelCheck`` enabled a goodness-of-fit test using the Pearson chi-square statistic (or deviance), and this shows that the Poisson assumption is
 reasonable. The plot of deviances residuals does not dispay any concerning patterns.
 
-### Plot the fitted selection curves
+### Plot the master selection curve
+
+Due to geometric similarity, for each mesh size the selection curve scales (as a function of length) in proportion to mesh size, so the master curve describes selectivity for all mesh sizes.
 
 ```{r, fig.width=7, fig.height=4.5}
 par(oma=c(0,0,0,0),mar=c(4,4,1,4)) 
@@ -107,5 +108,4 @@ plot(SEL5,standardize=T) #Use standardize=T to set maximum retention to 1
 legend(600,0.3,legend=paste(Meshs,"mm"),lty=1:5,col=1:5,cex=0.8)
 ```
 
-Note the geometric similarity of the curves, with each curve scaling in 
-proportion to mesh size.
+
