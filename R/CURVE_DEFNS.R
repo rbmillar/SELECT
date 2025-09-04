@@ -33,7 +33,7 @@ selncurves=function(rtype) {
        relsize=Meshsize/min(Meshsize)
        seln=exp(-(lens-th[1]*relsize)^2/(2*th[2]^2))
        return(seln) } },
-   "norm.sca"={
+   "norm.sca"=, "normal"={
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln=exp(-(lens-th[1]*relsize)^2/(2*th[2]^2*relsize^2))
@@ -51,7 +51,7 @@ selncurves=function(rtype) {
        seln=(relsize/lens)*exp(th[1]-th[2]^2/2)
        seln=seln*exp( -(log(lens)-th[1]-log(relsize))^2/(2*th[2]^2) )
        return(seln) } },
-   "binorm.sca"={
+   "binorm.sca"=, "binormal"={
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln1=exp(-(lens-th[1]*relsize)^2/(2*th[2]^2*relsize^2))
@@ -70,8 +70,8 @@ selncurves=function(rtype) {
        seln=p*seln1+(1-p)*seln2
        return(seln) } },
        stop(paste0('SELECT errror message: ',stype,' not recognised.\n',
-        'Possible relative selection types are , "norm.loc", "norm.sca", "gamma",
-        "lognorm", "logistic", "richards, "binorm.sca", and "bilognorm". \n',
+        'Possible direct comparison types are , "norm.loc", "normal", "gamma",
+        "lognorm", "logistic", "richards, "binormal", and "bilognorm". \n',
         'Possible covered-codend and alternative hauls types are "logistic" and "richards" \n'))
    #"binorm.loc"={ #Not yet fully implemented
    #    function(lens,Meshsize,th) {

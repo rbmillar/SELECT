@@ -1,7 +1,7 @@
 #===============================================================================
 #' Gillnet data
 #'
-#' Counts of trout from a five mesh gang of gillnets,
+#' Counts of trout from a five-mesh gang of gillnets,
 #' from Table 1 of Hansen et al. (1997)
 #'
 #' @docType data
@@ -16,10 +16,11 @@
 #' @references Hansen et al. (1997). Gillnet selectivity for lake trout
 #' (Salvelinus namaycush) in Lake Superior.
 #' Canadian Journal of Fisheries and Aquatic Sciences, 54: 2483-2490.
-
+#'
 #' @examples
 #' data(Trout)
 "Trout"
+
 
 #===============================================================================
 #Clark=read.table("../inst/extdata/Clark113_20min.dat",head=T)
@@ -43,10 +44,11 @@
 #' @references Wileman et al. (1995) Manual of Methods of Measuring the
 #' Selectivity of Towed Fishing Gears.
 #' ICES Cooerative Research Report, No 215.
-
+#'
 #' @examples
 #' data(Clark)
 "Clark"
+
 
 #===============================================================================
 #Pope=read.table("../inst/extdata/haddock.dat",head=T)
@@ -69,10 +71,11 @@
 #'
 #' @references Wileman et al. (1995) Manual of Methods of Measuring the
 #' Selectivity of Towed Fishing Gears. ICES Cooerative Research Report, No 215.
-
+#'
 #' @examples
 #' data(Pope)
 "Pope"
+
 
 #===============================================================================
 #Counts=read.table("../inst/extdata/holt.dat",head=F);
@@ -96,7 +99,7 @@
 #'
 #' @references Holt S. J. (1963). A method for determining gear selectivity
 #' and its application. ICNAF Special Pubn, 5: 106-115
-
+#'
 #' @examples
 #' data(Pope)
 "Pope"

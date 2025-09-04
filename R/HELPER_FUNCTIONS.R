@@ -36,9 +36,10 @@ ModelCheck=function(fit,minE=0,xlab="Length (cm)",ylab = "Propn in exptl gear",
   NonZeroDat=O[apply(O,1,sum,na.rm=TRUE)>0,]
   npar=length(fit$par)
   aic=-2*model.l+2*npar
+  bic=-2*model.l+log(fit$nobs)*npar
   dof=nrow(NonZeroDat)*(nmeshes-1)-npar-sum(is.na(NonZeroDat))
   Deviance.CF=Deviance/dof; Pearson.CF=Pearson.chisq/dof
-  out1a=cbind(null.l,model.l,full.l,npar,AIC=aic)
+  out1a=cbind(null.l,model.l,full.l,npar,AIC=aic,BIC=bic)
   out1b=cbind(Deviance,Pearson.chisq,dof,Deviance.CF,Pearson.CF)
   outlist=list(stats=out1a,gof=out1b,fit=E)
   #If n cells for a given length have freq>=minE, it contributes max(0,n-1) dof
@@ -121,7 +122,7 @@ Estimates=function(fit,OD=NULL) {
     {rtype=ifelse(rtype=="cc.logistic","dc.logistic",rtype)
      rtype=ifelse(rtype=="cc.richards","dc.richards",rtype)},
     "dc.norm.loc"={ pars=x; varpars=varx },
-    "dc.norm.sca"={ pars=x; varpars=varx },
+    "dc.norm.sca"=, "dc.normal"={ pars=x; varpars=varx },
     "dc.gamma"={
       pars=c((x[1]-1)*x[2],sqrt(x[1]*x[2]^2))
       varpars=deltamethod(list(~(x1-1)*x2,~x2*sqrt(x1)),x,varx,ses=F)},
@@ -130,7 +131,7 @@ Estimates=function(fit,OD=NULL) {
       pars=c(exp(x[1]-x[2]^2),sqrt(exp(2*x[1]+x[2]^2)*(exp(x[2]^2)-1)))
       varpars=deltamethod(list(~exp(x1-x2^2),
                ~sqrt(exp(2*x1+x2^2)*(exp(x2^2)-1))),x,varx,ses=F)},
-    "dc.binorm.sca"={
+    "dc.binorm.sca"=, "dc.binormal"={
       pars=c(x[1:4],exp(x[5])/(1+exp(x[5])))
       names=c("Mode1(mesh1)","Std dev.1(mesh1)",
                     "Mode2(mesh1)","Std dev.2(mesh1)","P(mode1)")
@@ -227,8 +228,8 @@ Estimates=function(fit,OD=NULL) {
         -(log(0.25^exp(x3)/(1-0.25^exp(x3))))/x2,
         ~exp(x3),~exp(x4)/(1+exp(x4))),x,varx,ses=F)},
   stop(paste0('SELECT errror message: ',fit$rtype, ' not recognised.\n',
-      'Possible relative selection types are , "norm.loc", "norm.sca", "gamma",
-        "lognorm", "logistic", "richards, "binorm.sca", and "bilognorm". \n',
+      'Possible direct comparison types are , "norm.loc", "normal", "gamma",
+        "lognorm", "logistic", "richards, "binormal", and "bilognorm". \n',
       'Possbile covered-codend and alternative hauls types are
                    "logistic" and "richards" \n'))
   )#End of switch
@@ -275,25 +276,20 @@ PlotCurves=function(fit,plotlens=NULL,Meshsize=NULL,rel.power=NULL,
   smatrix=t(t(smatrix)*pwr)
   if(standardize) smatrix=smatrix/max(smatrix)
   Df=as.data.frame(cbind(plotlens,smatrix))
-  #Plot propn retained if only two gears
-  if(plot.out){
-    if(dtype %in% c("cc","ec")) {
-      colnames(Df)=c(lgthName,paste0("Gear",1:length(Meshsize)))
-      plot(plotlens,smatrix[,2],ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
-      abline(h=c(0.25,0.5,0.75),lty=3) }
-    if(dtype == "dc" & !Master)
-      matplot(plotlens,smatrix,ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
-    if(dtype == "dc" & Master) {
-      colnames(Df)=c(fit$var.names[1],Meshsize)
-      #r.df=as.data.frame(lensmatrix)
-      Df=pivot_longer(Df,cols=!all_of(lgthName),values_to="r",names_to="Msize")
-      Df=as.data.frame(Df)
-      Df$Msize=as.numeric(Df$Msize)
-      Df$v=Df[,lgthName]/Df$Msize
-      Df=Df[order(Df$v),]
-      plot(r~v,type=type,xlab="Length/Meshsize",ylab=ylab,data=Df)
-      }
-  }
+  colnames(Df)=fit$var.names
+  if(dtype %in% c("cc","ec") & plot.out) {
+    plot(plotlens,smatrix[,2],ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
+    abline(h=c(0.25,0.5,0.75),lty=3) }
+  if(dtype == "dc" & !Master & plot.out)
+    matplot(plotlens,smatrix,ylim=ylim,xlab=xlab,ylab=ylab,type=type,...)
+  if(dtype == "dc" & Master) {
+    colnames(Df)=c(fit$var.names[1],Meshsize)
+    Df=pivot_longer(Df,cols=!all_of(lgthName),values_to="r",names_to="Msize")
+    Df=as.data.frame(Df)
+    Df$Msize=as.numeric(Df$Msize)
+    Df$v=Df[,lgthName]/Df$Msize
+    Df=Df[order(Df$v),]
+    if(plot.out) plot(r~v,type=type,xlab="Length/Meshsize",ylab=ylab,data=Df) }
   invisible(Df)
 }
 

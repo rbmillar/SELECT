@@ -10,11 +10,14 @@
 #'
 #' The `SELECT` functions fits a variety of parametric selection curves to
 #' catch data from various types of selectivity experiments.
+#' By default, 'SELECT' aggregates the data (sums over hauls) before fitting the
+#' selection curve.
+#' 
 #' @param data Catch data in SELECT format. This is conventional format with columns
 #' for length and catch frequencies and possibly other variables (sampling fractions,
 #' haul ID, block ID). This format is also used for unpaired data whereby only
 #' the gear used in the haul has non-zero catch values and all other gears are given
-#' zero catch values (see [SELECT.FORMAT()]).
+#' zero catch values (see [SELECT.FORMAT]).
 #' @param var.names Character vector giving the variable names.
 #' The first name is always the length variable,
 #' followed by names of the raw catch variables. E.g., c("lgth","nA","nB"). It is
@@ -25,9 +28,10 @@
 #' primarily used for multi-gear gillnet or hook studies, but can also be used for
 #' experimental vs control studies if it is desired to fix the relative power.
 #' @param stype Selection curve shape. Options include `logistic` and  `richards`
-#' for trawl gears, and the unimodal `norm.loc` (location varying by meshsize),
-#' `norm.sca` (scale vatying), `gamma`, `lognorm`, and bimodal `binorm.sca`
-#' and `bilognorm` for gillnets and hooks.
+#' for trawl gears, and the unimodal `normal`, `gamma`, and lognormal `lognorm`, 
+#' and bimodal `binormal` and `bilognorm` for gillnets and hooks.
+#' There is also a unimodal `norm.loc` (with mode proportional to meshsize, 
+#' but spread fixed) that, unlike the others, does not follow geometric similarity.
 #' @param sumHauls Logical indicating whether to sum the catch over hauls before
 #' fitting the curve. Summing, or not, makes no difference to the fit.
 #' @param q.names Character vector giving the names of sampling fractions, if any.
@@ -53,7 +57,7 @@
 SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
                  q.names=NULL,Meshsize=NULL,x0=NULL,rel.power=NULL,penalty.func=NULL,
                  verbose=FALSE,control=list(maxit=10000,reltol=1e-8),Fit=TRUE) {
-  #SELECT.args=as.list(environment()) %>% discard(is.null)
+  args=as.list(environment())[1:6] #%>% discard(is.null) 
   if(typeof(var.names)!="character")
     stop('SELECT errror message: \n Variable names must be character')
   if(!is.null(q.names) & typeof(q.names)!="character")
@@ -70,18 +74,15 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
   rtype=paste0(dtype,".",stype)
   r=propncurves(rtype) #Get propn catch curve function
   nGears=length(var.names)-1
-  #Data=data[,var.names]
-  #GearNames=paste0("n",1:nGears)
-  #colnames(Data)=c("lgth",GearNames)
-  #if(!is.null(q.names)) Data[,-1] = Data[,-1]/data[,q.names]
-  #if(sumHauls) Data=Data %>% group_by(lgth) %>%
-  #  summarize(across(all_of(GearNames),sum)) %>% data.frame()
   Data=Raw2Tots(data,var.names,q.names=q.names,sumHauls=sumHauls)[,var.names]
   Counts=Data[,-1]
   Const=mchoose(Counts,log=T) #Constant for log-likelihoods
-  designTypes=c("direct comparison","covered codend","experimental/control","paired haul")
-  design=designTypes[match(dtype,c("dc","cc","ec","un"))]
-  if(!(dtype %in% c("dc","cc","ec","un")))
+  designTypes=
+    c("covered codend","direct comparison","experimental/control","hybrid")
+  # dtype="un" is for unrestricted fits where each curve has its own set
+  # parameters. It is undocumented since it is designed for hybrid studies.
+  design=designTypes[match(dtype,c("cc","dc","ec","un"))]
+  if(!(dtype %in% c("cc","dc","ec","un")))
     stop('SELECT errror message: \ndesign must be one of "cc" (covered codend),
      "ec" (experimental/control), or "dc" (direct comparison - primarily for
          gillnets and hooks)')
@@ -95,12 +96,13 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
   if(is.null(penalty.func)) penalty.func=function(theta){0.0}
   if(nGears!=length(Meshsize)) stop("Number of mesh sizes should be ",nGears)
   if(is.null(x0)) x0=StartValues(rtype,Data)
-  SELECT.args=list(rawdata=data,var.names=var.names,Data=Data,rtype=rtype,
-        Meshsize=Meshsize,x0=x0,rel.power=rel.power,penalty.func=penalty.func)
+  SELECT.args=c(args,list(Data=Data,rtype=rtype,Meshsize=Meshsize,
+                          rel.power=rel.power,x0=x0,penalty.func=penalty.func))
   #Calculate logliks at x0 and of saturated model
   ll.init=Const-nllhood(theta=x0,Data,Meshsize,r,rel.power,penalty.func)
   CountTotals=apply(Counts,1,sum,na.rm=TRUE)
   npos=sum(CountTotals>0)
+  nobs=npos*(ncol(Counts)-1)
   CountTotals=ifelse(CountTotals==0,Inf,CountTotals)
   CountPropns=Counts/CountTotals
   ll.fullfit=Const+sum(Counts[Counts>0]*log(CountPropns[Counts>0]),na.rm=TRUE)
@@ -126,7 +128,7 @@ SELECT=function(data,var.names,dtype="cc",stype="logistic",sumHauls=TRUE,
     cat(paste0("Convergence code ",fit$convergence,
                ": Optimizer has ",ifelse(fit$convergence==0,"","*NOT*"),"converged\n"))
     cat("Pars=",fit$par,", Deviance=",Dev,", #len classes=",npos,"\n") }
-  z=c(Call=match.call(),fit,SELECT.args,npos=npos,deviance=Dev,
+  z=c(Call=match.call(),SELECT.args,fit,npos=npos,nobs=nobs,deviance=Dev,
       init.logLik=ll.init,full.logLik=ll.fullfit,logLik=-fit$value)
   class(z)="SELECT"
   return(invisible(z))

@@ -39,9 +39,10 @@ primarily used for multi-gear gillnet or hook studies, but can also be used for
 experimental vs control studies if it is desired to fix the relative power.}
 
 \item{stype}{Selection curve shape. Options include \code{logistic} and  \code{richards}
-for trawl gears, and the unimodal \code{norm.loc} (location varying by meshsize),
-\code{norm.sca} (scale vatying), \code{gamma}, \code{lognorm}, and bimodal \code{binorm.sca}
-and \code{bilognorm} for gillnets and hooks.}
+for trawl gears, and the unimodal \code{normal}, \code{gamma}, and lognormal \code{lognorm},
+and bimodal \code{binormal} and \code{bilognorm} for gillnets and hooks.
+There is also a unimodal \code{norm.loc} (with mode proportional to meshsize,
+but spread fixed) that, unlike the others, does not follow geometric similarity.}
 
 \item{sumHauls}{Logical indicating whether to sum the catch over hauls before
 fitting the curve. Summing, or not, makes no difference to the fit.}

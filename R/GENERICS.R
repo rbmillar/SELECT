@@ -39,10 +39,15 @@ plot.SELECT=function(obj,plotlens=NULL,npts=101,...) {
 }
 
 #' @export
-predict.SELECT=function(obj,predlens=NULL,...) {
-  if(!is.null(predlens) & !is.vector(predlens))
-    stop("Error: predlens must be a vector of lengths")
-  PlotCurves(obj,plotlens=predlens,plot.out=F,...) }
+predict.SELECT=function(obj,lens=NULL,...) {
+  if(!is.null(lens) & !is.vector(lens))
+    stop("Error: lens must be a vector of lengths")
+  PlotCurves(obj,plotlens=lens,plot.out=F,...) }
+
+#' @export
+fitted.SELECT=function(obj,...) {
+  Fit=PlotCurves(obj,plot.out=F,...) 
+  Fit }
 
 #' @export
 logLik.SELECT=function(obj,type="SELECT") {
@@ -80,6 +85,24 @@ AIC.SELECT=function(obj,type="SELECT") {
       names(AIC)="Poisson.AIC" }
   AIC }
 
-
+#' Calculate BIC
+#' @description Calculates BIC of SELECT object. By default it provides the
+#' binomial SELECT BIC. For comparison with models fitted by glm of gam use
+#' type="poisson" to get the Poisson BIC.
+#'
+#' @param obj Fitted SELECT model
+#' @param type Use type="poisson" to get Poisson BIC. This is calculated from the
+#' matrices of observed and fitted counts and does not condition on row totals.
+#' @export
+BIC.SELECT=function(obj,type="SELECT") {
+  if(type=="SELECT") BIC=ModelCheck(obj,print.out=F,plots=c(F,F))$stats[1,"BIC"]
+  else
+  { O=as.matrix(obj$Data[,-1])
+  nobs=nrow(O)*ncol(O) #Note: All-zero rows are data, so not excluded
+  npar=length(obj$par)+nrow(O)
+  E=ModelCheck(obj,print.out=F,plots=c(F,F))$fit
+  BIC=-2*sum(dpois(as.vector(O),as.vector(E),log=T)) + log(nobs)*npar
+  names(BIC)="Poisson.BIC" }
+  BIC }
 
 
