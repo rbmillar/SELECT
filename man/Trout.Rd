@@ -12,7 +12,7 @@ Meshsize (vector of meshsizes)  respectively.
 data(Trout)
 }
 \description{
-Counts of trout from a five mesh gang of gillnets,
+Counts of trout from a five-mesh gang of gillnets,
 from Table 1 of Hansen et al. (1997)
 }
 \examples{

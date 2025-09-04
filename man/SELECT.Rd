@@ -25,7 +25,7 @@ SELECT(
 for length and catch frequencies and possibly other variables (sampling fractions,
 haul ID, block ID). This format is also used for unpaired data whereby only
 the gear used in the haul has non-zero catch values and all other gears are given
-zero catch values (see \code{\link[=SELECT.FORMAT]{SELECT.FORMAT()}}).}
+zero catch values (see \link{SELECT.FORMAT}).}
 
 \item{var.names}{Character vector giving the variable names.
 The first name is always the length variable,
@@ -81,6 +81,8 @@ the catch data can be treated as proportions within each lengthclass.
 
 The \code{SELECT} functions fits a variety of parametric selection curves to
 catch data from various types of selectivity experiments.
+By default, 'SELECT' aggregates the data (sums over hauls) before fitting the
+selection curve.
 }
 \references{
 Millar, R. B. (1992).
