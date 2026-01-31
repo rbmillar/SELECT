@@ -37,9 +37,11 @@ knitr::opts_chunk$set(fig.height = 3.5)
 
 The data are for school prawn relative selectivity in penaeid trawls from the
 experiments conducted by Broadhurst et al., (2018, T45 side panels improve
-penaeid-trawl selection. Fisheries Research, 204: 8-15). The dats used here are
-from the twin-trawl experiment that fished two trawls differing in square mesh
-sizes used for the side panel, 32 mm or 35 mm.
+penaeid-trawl selection. Fisheries Research, 204: 8-15). 
+
+The data used here are from the twin-trawl experiment that fished two trawls 
+differing in square mesh sizes used for the side panel, 32 mm or 35 mm. 
+There are 12 such twin-trawls. 
 
 ### Load required packages
 
@@ -49,7 +51,7 @@ require(tidyverse)
 require(mgcv)
 require(SELECT)
 require(readxl) #This package is installed with tidyverse
-nsim=999 #For bootstrapping and permutation tests, set to >=999 in practice
+nsim=1000 #For bootstrapping and permutation tests, set to >=999 in practice
 ```
 
 ### Read in the data
@@ -69,12 +71,18 @@ GearB.df = GearB.df |> rename(Haul=Day, nB=No.school, sfB=Sf.school)
 Note the conversion from sub-sampling scaling factors to sampling fractions and
 removal of CLs that are outside of the range of measured data.
 
+The data files contain counts from tows when the square side-panel trawls were
+paired against a conventional, so only the tow IDs that match in both files are
+used. Here, this is most easily done using `inner_join`, since the lengthclasses
+are the same for every tow (`inner_join` should not be used otherwise).
+
 ```{r}
 #Merge the gears with the same identical haul-pair ID (i.e., twin tows)
 Pairs.df = inner_join(GearA.df,GearB.df,by=c("Haul","CL"))
 #Convert scaling factors to sampling fractions
 Pairs.df = Pairs.df |>
    transform(qA=1/sfA,qB=1/sfB) |> filter(CL>=5 & CL<=25)
+#write.csv(Pairs.df,"Pairs.RData",row.names=F)
 ```
 
 ```{r, echo=F, eval=F}
@@ -132,7 +140,7 @@ abline(h=0.5,lty=3)
 
 ```{r Running bootstrap, warning=F, message=F}
 BootPreds=bootSELECT(Pairs.df,vNames,qNames,PrednFnc,haul="Haul",nsim=nsim,
-                     paired=T,verbose=F) #Use verbose=T to see progress
+                     paired=T,verbose=T) #Use verbose=T to see progress
 ```
 
 ```{r}

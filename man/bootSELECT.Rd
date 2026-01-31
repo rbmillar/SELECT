@@ -15,7 +15,8 @@ bootSELECT(
   block = NULL,
   gear = NULL,
   within.resamp = TRUE,
-  verbose = 1
+  verbose = 1,
+  boot.size = NULL
 )
 }
 \arguments{

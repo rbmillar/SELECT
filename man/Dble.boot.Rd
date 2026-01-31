@@ -12,7 +12,8 @@ Dble.boot(
   gear = NULL,
   paired = T,
   within.resamp = T,
-  smooth = F
+  smooth = F,
+  boot.size = NULL
 )
 }
 \arguments{

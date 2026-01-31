@@ -9,7 +9,8 @@ BootPlot(
   lenseq,
   predn,
   Data = NULL,
-  eps = 0.025,
+  coverage = 0.95,
+  eps = NULL,
   txt = 8,
   xlab = "Length (cm)",
   ylab = "Catch proportion"

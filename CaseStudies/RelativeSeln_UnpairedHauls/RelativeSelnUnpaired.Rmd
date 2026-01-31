@@ -154,7 +154,7 @@ when analyzing unpaired data.
 
 ```{r Running bootstrap, warning=F, message=F}
 BootPreds=bootSELECT(Gears.df,vNames,qNames,PrednFnc,haul="Haul",nsim=999,
-                  paired=F,gear="Gear",verbose=F)
+                  paired=F,gear="Gear",verbose=T)
 ```
 
 ```{r}

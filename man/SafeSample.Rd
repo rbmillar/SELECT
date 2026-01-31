@@ -4,7 +4,7 @@
 \alias{SafeSample}
 \title{Avoid issue with sample from a single value}
 \usage{
-SafeSample(x, replace = T)
+SafeSample(x, size = length(x), replace = T)
 }
 \description{
 Avoid issue with sample from a single value
