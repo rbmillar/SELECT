@@ -23,6 +23,7 @@ editor_options:
     code).
 -   Using the bootstrap function `bootSELECT` to estimate the uncertainty in the
     catch share curve.
+-   Using BootPlot to visualize simultaneous bootstrap confidence intervals.
 -   Using the permutation function `permSELECT` to quantify the evidence:
     -   for a length effect on the catch share.
     -   that the gears are not identical (i.e., catch comparison is not equal to
@@ -46,12 +47,13 @@ There are 12 such twin-trawls.
 ### Load required packages
 
 ```{r,warning=FALSE,message=F,echo=-(1:2)}
-#devtools::install_github("rbmillar/SELECT")
+#remotes::install_github("rbmillar/SELECT")
 require(tidyverse)
 require(mgcv)
 require(SELECT)
 require(readxl) #This package is installed with tidyverse
 nsim=1000 #For bootstrapping and permutation tests, set to >=999 in practice
+#source("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT/R/BOOTSTRAP&PERMUTATION.R")
 ```
 
 ### Read in the data
@@ -120,7 +122,7 @@ try other values of `k`, say 5 and 10.
 
 ```{r}
 #Define the bootstrap prediction function
-CLseq=seq(5,25,0.5) #Carapace lengths to use for predn
+CLseq=5:23 #Carapace lengths to use for predn
 PrednFnc=function(data,var.names,q.names) {
   SplineFit=SplineSELECT(data,var.names,q.names) #Using spline defaults
   predict(SplineFit,newdata=data.frame(CL=CLseq),type="response") }
@@ -140,12 +142,26 @@ abline(h=0.5,lty=3)
 
 ```{r Running bootstrap, warning=F, message=F}
 BootPreds=bootSELECT(Pairs.df,vNames,qNames,PrednFnc,haul="Haul",nsim=nsim,
-                     paired=T,verbose=T) #Use verbose=T to see progress
+                     paired=T,verbose=F) #Use verbose=T to see progress
 ```
-
+### Simultaneous boostrap confidence band plots
 ```{r}
 BootPlot(BootPreds,CLseq,predn,Data=Tots.df) +
           geom_hline(yintercept=0.5,linetype="dashed")
+```
+
+```{r}
+#With pointwise confidence band also shown
+BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.pointwise=T) +
+         geom_hline(yintercept=0.45,linetype="dashed")
+```
+
+```{r}
+#Setting limits to include only lengths where >30 prawn caught
+#This reduces the number of multiple comparisons
+BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.pointwise=T,
+                  limits=c(9,21)) +
+         geom_hline(yintercept=0.5,linetype="dashed")
 ```
 
 ## Permutation test(s)
@@ -169,7 +185,8 @@ ObsStats
 ### Do permutations
 
 ```{r Running permutations, warning=F, message=F}
-PermStats=permSELECT(Pairs.df,vNames,qNames,StatsFnc,haul="Haul",nsim=nsim,
+nperm=999
+PermStats=permSELECT(Pairs.df,vNames,qNames,StatsFnc,haul="Haul",nsim=nperm,
                    paired=T,verbose=F) #Use verbose=T to see progress
 colnames(PermStats)=names(ObsStats) #To add column names to PermStats
 ```

@@ -2,7 +2,7 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{BootPlot}
 \alias{BootPlot}
-\title{Produce the bootstrap plot}
+\title{Produce the simultaneous bootstrap confidence band plot}
 \usage{
 BootPlot(
   BootPreds,
@@ -10,29 +10,49 @@ BootPlot(
   predn,
   Data = NULL,
   coverage = 0.95,
-  eps = NULL,
+  limits = NULL,
   txt = 8,
   xlab = "Length (cm)",
-  ylab = "Catch proportion"
+  ylab = "Catch proportion",
+  show.pointwise = FALSE
 )
 }
 \arguments{
 \item{BootPreds}{Matrix with bootstraps by row and fitted values at length in columns, as produced by bootSELECT.}
 
-\item{predn}{Fitted curve}
+\item{lenseq}{Lengths at which fitted values were calculated.}
 
-\item{eps}{The quantiles for the lower and upper bootstrap confidence limits are \code{eps} and 1-\code{eps}. Default is 95\% intervals.}
+\item{predn}{Fitted curve.}
+
+\item{Data}{If provided the data are added to the plot. The length variable must have the name \code{lgth} and the catch proportion variable \code{y}.}
+
+\item{coverage}{The desired coverage probability for the simultaneous interval. Default is 0.95.}
+
+\item{limits}{Optional numeric vector of length 2, \code{c(lower, upper)}, specifying the length range over which simultaneous coverage is computed. Lengths outside this range are excluded when determining whether a bootstrap curve is within bounds. Default is NULL (use all lengths).}
 
 \item{txt}{Size of text used in the plot axes.}
 
-\item{lenseqs}{Lengths at which fitted values were calculated.}
+\item{xlab}{X-axis label.}
 
-\item{If}{provided the data are added to the plot. The length variable must have the name \code{lgth} and the catch proportion variable \code{y}.}
+\item{ylab}{Y-axis label.}
+
+\item{show.pointwise}{Logical. If TRUE, also show pointwise intervals as a darker inner band.}
 }
 \value{
-ggplot GROB
+A list with components: \code{plot} (ggplot GROB), \code{eps} (the quantile probability used),
+and \code{coverage.achieved} (the actual coverage achieved).
 }
 \description{
-\code{bootPlot} uses ggplot to produce a grob (graphical object)
-displaying the fitted curve and pointwise bootstrap confidence intervals.
+\code{BootPlot} uses ggplot to produce a grob (graphical object)
+displaying the fitted curve and simultaneous bootstrap confidence intervals.
+Unlike pointwise intervals, simultaneous intervals ensure that the specified
+proportion of entire bootstrap curves fall within the bounds.
+}
+\details{
+The function finds the value of \code{eps} such that when bounds are computed as the
+\code{eps} and \code{1-eps} quantiles at each length, approximately \code{coverage} proportion
+of bootstrap curves are entirely contained within those bounds.
+
+The \code{limits} argument is useful when extreme lengths have high variability due to
+sparse data, and you want to prevent these from unduly widening the confidence bands.
 }

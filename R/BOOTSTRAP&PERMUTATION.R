@@ -152,8 +152,8 @@ Dble.boot=function(data,var.names,haul="Haul",block=NULL,gear=NULL,
 
 
 
-#' Produce the bootstrap plot
-#' @description `bootPlot` uses ggplot to produce a grob (graphical object)
+#' Produce the pointwise bootstrap confidence band plot
+#' @description `BootPlotPtWise` uses ggplot to produce a grob (graphical object)
 #' displaying the fitted curve and pointwise bootstrap confidence intervals.
 #'
 #' @param BootPreds Matrix with bootstraps by row and fitted values at length in columns, as produced by bootSELECT.
@@ -165,7 +165,7 @@ Dble.boot=function(data,var.names,haul="Haul",block=NULL,gear=NULL,
 #' @return ggplot GROB
 #' @export
 #'
-BootPlot=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,txt=8,
+BootPlotPtWise=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,txt=8,
                   xlab="Length (cm)",ylab="Catch proportion") {
   if(missing(eps)) eps=(1-coverage)/2
   Preds.lower=apply(BootPreds,2,quantile,prob=eps,na.rm=T)
@@ -185,8 +185,8 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,txt=8,
 
 
 
-#' Produce the bootstrap plot with simultaneous confidence intervals
-#' @description `BootPlot2` uses ggplot to produce a grob (graphical object)
+#' Produce the simultaneous bootstrap confidence band plot
+#' @description `BootPlot` uses ggplot to produce a grob (graphical object)
 #' displaying the fitted curve and simultaneous bootstrap confidence intervals.
 #' Unlike pointwise intervals, simultaneous intervals ensure that the specified
 #' proportion of entire bootstrap curves fall within the bounds.
@@ -212,7 +212,7 @@ BootPlot=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,txt=8,
 #' sparse data, and you want to prevent these from unduly widening the confidence bands.
 #' @export
 #'
-BootPlot2=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NULL,
+BootPlot=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NULL,
                    txt=8, xlab="Length (cm)", ylab="Catch proportion",
                    show.pointwise=FALSE) {
 
@@ -309,12 +309,11 @@ BootPlot2=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NU
 
   if(!is.null(Data)) BootGROB <- BootGROB + geom_point(data=Data, aes(x=lgth, y=y))
 
-  # Return list with plot and diagnostics
-  list(plot=BootGROB,
-       initial.pointwise.coverage=coverage,
-       initial.simultaneous.coverage=init.coverage,
-       adjusted.pointwise.coverage=1-2*eps_final,
-       adjusted.simultaneous.coverage=coverage_achieved)
+  cat("\n initial.pointwise.coverage:",coverage,
+      "\n initial.simultaneous.coverage:",init.coverage,
+      "\n adjusted.pointwise.coverage:",1-2*eps_final,
+      "\n adjusted.simultaneous.coverage:",coverage_achieved,"\n")
+  BootGROB
 }
 
 
