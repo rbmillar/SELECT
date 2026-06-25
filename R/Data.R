@@ -126,3 +126,49 @@
 #' data(SimCatch)
 "SimCatch"
 
+
+#===============================================================================
+#' T45 side panel data
+#'
+#' School prawn catch data (including sampling fractions) from twin trawls with 
+#' panaeid gears modified with either
+#' a 32 mm or 35 mm T45 (square orientation of mesh) side panels. 
+#' Used in Appendix 2 of Millar (2024) to demonstrate use of permutation testing.
+#'
+#' @docType data
+#'
+#' @usage data(T45SidePanels)
+#'
+#' @format dataframe `T45SidePanels` with 252 rows and 8 columns.
+#'
+#' @keywords datasets
+#'
+#' @references Broadhurst et al. (2018). T45 side panels improve penaeid-trawl selection.
+
+#' @examples
+#' data(T45SidePanels)
+"T45SidePanels"
+
+
+#===============================================================================
+#' Bycatch reduction data for tailor
+#'
+#' Tailor catch data (including sampling fractions) from double-rigged trawls with 
+#' panaeid gears fitted with either Nordmore grid or blubber chute.
+
+#'
+#' @docType data
+#'
+#' @usage data(Expt4Tailor)
+#'
+#' @format dataframe `Expt4Tailor` with 730 rows and 8 columns.
+#'
+#' @keywords datasets
+#'
+#' @references Broadhurst & Millar (2018). Relative performance of two bycatch 
+#' reduction devices for excluding juvenile mulloway, Argyrosomus japonicus and 
+#' other fish from south-eastern Australian penaeid trawls.
+
+#' @examples
+#' data(Expt4Tailor)
+"Expt4Tailor"

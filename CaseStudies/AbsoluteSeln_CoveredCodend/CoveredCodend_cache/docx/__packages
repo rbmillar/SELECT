@@ -1,0 +1,4 @@
+SELECT
+dplyr
+ggplot2
+lattice

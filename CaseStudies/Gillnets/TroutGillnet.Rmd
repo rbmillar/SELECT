@@ -6,6 +6,18 @@ editor_options:
     wrap: 80
 ---
 
+
+```{r setup, include=F, eval=T}
+#Save figures
+knitr::opts_chunk$set(
+  fig.height=3,
+  fig.path = '../figures/',
+  dev = c('png','pdf') )  # Change to pdf when needed
+
+knitr::opts_knit$set(global.par = TRUE)
+par(oma=c(0,0,0,0),mar=c(4,4,0,4),las=1)
+```
+
 ## Summary
 
 **This case study demonstrates:**
@@ -101,11 +113,13 @@ reasonable. The plot of deviances residuals does not dispay any concerning patte
 
 Due to geometric similarity, for each mesh size the selection curve scales (as a function of length) in proportion to mesh size, so the master curve describes selectivity for all mesh sizes.
 
-```{r, fig.width=7, fig.height=4.5}
-par(oma=c(0,0,0,0),mar=c(4,4,1,4)) 
-plot(SEL5,standardize=T) #Use standardize=T to set maximum retention to 1
+```{r GN-SelnCurves,fig.height=3,fig.width=7.5}
+par(mfrow=c(1,2))
+par(oma=c(0,0,0,0),mar=c(4,4,1,2),las=1) 
+plot(SEL5,standardize=T,Master=F) #Use standardize=T to set maximum retention to 1
 #Add plot legend
-legend(600,0.3,legend=paste(Meshs,"mm"),lty=1:5,col=1:5,cex=0.8)
+legend(600,0.3,legend=paste(Meshs,"mm"),lty=1:5,col=1:5,cex=0.7)
+plot(SEL5,standardize=T,ylab="Primary curve")
 ```
 
 

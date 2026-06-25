@@ -1,0 +1,277 @@
+---
+title: "Covered codend"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
+    keep_md: true
+    wrap: 80
+---
+
+```{r setup, include=F}
+#Save figures
+knitr::opts_chunk$set(
+  fig.height=3,
+  fig.path = '../figures/',
+  dev = c('png','pdf') )  # Change to pdf when needed
+
+#knitr::opts_knit$set(global.par = TRUE)
+#par(oma=c(0,0,0,0),mar=c(4,4,0,4),las=1)
+```
+
+## Summary
+
+**This case study demonstrates:**
+
+-   Using the R package SELECT to fit selection curves to covered-codend data.
+-   Fitting of logistic, Richards and semiparametric (smooth) selection curves
+    to covered-codend data.
+-   Model selection and checking
+-   Handling sub-sampled data.
+-   Visualization of between-haul variability.
+-   Using the bootstrap to estimate uncertainty.
+
+### Data source
+
+The data are from a study investigation school prawn selectivity in a 30 mm
+square-mesh stow-net(MacBeth et al. 2005. Improving selectivity in an Australian
+penaeid stow-net fishery. Bulletin of Marine Science, 76: 647-660). Nineteen
+replicate deployments were performed.
+
+```{r, echo=F, out.width="400px"}
+knitr::opts_chunk$set(fig.height = 3.5)
+knitr::include_graphics("StowNet.jpg")
+```
+
+### Load required packages
+
+```{r, warning=F, message=F, echo=-1}
+#devtools::install_github("rbmillar/SELECT")
+require(SELECT)
+require(dplyr)
+require(ggplot2) #For bootstrap plot
+```
+
+### Input and inspect the data
+
+```{r}
+#Read in data and remove zero catch lengths
+Stow.df=read.csv("../Data/LgSq.csv",header=T) #343 rows
+Stow.df=subset(Stow.df,total>0) #213 rows
+
+#Quick peek at data
+head(Stow.df)
+```
+
+Note the presence of the sampling fractions `qcodend` and
+`qcover' in the data due to the catch being sub-sampled. Variable`Haul\`
+identifies the deployment, and takes values from 1 to 19.
+
+### Define variable names, and the names of sampling fraction variables
+
+The names of the length and gear variables need to be specified, with the length
+name always given first. If there is sub-sampling then these variable names also
+need to be specified.
+
+```{r}
+v.names=c("lgth","cover","codend")
+q.names=c("qcover","qcodend")
+```
+
+### Produce a plot of retention proportions
+
+It is always a good idea to inspect the data before analysis. The code below
+sums the data over the nineteen deployments, and then calculates and plots the
+retention proportions by length.
+
+```{r CC-Scatter plot}
+Tots=Raw2Tots(Stow.df,v.names,q.names)
+Tots=transform(Tots,n=codend+cover,y=codend/(codend+cover)) 
+Tots
+plot(y~lgth,data=Tots,xlab="Carapace length (mm)",ylab="Propn retained")
+```
+
+The proportions look S-shaped as would normally expect. There is one possibly
+anomalous value at 10 mm length, but this may just be due to low numbers of this
+length.
+
+### Fit a logistic selection curve, plot it, and do model checks
+
+Standard practice is to start with the simple logistic curve and then to
+evaluate its fit to determine whether a more flexible curve may be preferred.
+
+```{r CC-LogisticFit}
+Logist.fit=SELECT(Stow.df,var.names=v.names,q.names=q.names)
+plot(Logist.fit, xlab="Carapace length (mm)")
+```
+
+```{r CC-LogisticChecks,fig.width=6}
+par(mfrow=c(1,2))
+ModelCheck(Logist.fit, xlab="Carapace length (mm)")
+Estimates(Logist.fit)
+```
+
+The logistic fit estimates `L50` and `SR` of 16.1 and 4.7 mm, respectively.
+
+The Pearson chi-square value (13.8) is close to the degrees of freedom (15) and
+so the omnibus overdispersion test does not indicate lack of fit. However, the
+deviance residual plot does suggest some mild lack of fit due to blocks of
+negative and positive residuals. So, let's try an asymmetric Richards curve fit.
+
+### Fit a Richards selection curve
+
+```{r CC-RichardsFit,echo=-1}
+Rich.fit=SELECT(Stow.df,var.names=v.names,q.names=q.names,stype="richards")
+plot(Rich.fit, xlab="Carapace length (mm)")
+```
+
+```{r CC-RichardsChecks,fig.width=6}
+par(mfrow=c(1,2))
+ModelCheck(Rich.fit, xlab="Carapace length (mm)")
+Estimates(Rich.fit)
+```
+
+The Richards fit eliminates the pattern in the residuals, and moreover it has
+considerably lower AIC than the logistic fit. Hence, the Richards is preferred.
+It estimates `L50` and `SR` of 16.2 and 5.2 mm, respectively. Note the asymmetry
+in the `L25` and `L75` values around the `L50` value.
+
+## Between-haul variation
+
+**CAUTION:** The estimated standard errors shown above are not valid to use due
+to the presence of between-haul variability. The lattice plot below shows
+retained proportions for individual deployments. to
+
+### Produce a lattic plot of retention proportions by haul
+
+```{r CC-LatticePlot, fig.height=5}
+HaulCatch=Raw2Tots(Stow.df,v.names,q.names,sumHauls=F)
+HaulCatch=transform(HaulCatch,n=codend+cover,y=codend/(codend+cover)) 
+require(lattice) #For xyplot
+xyplot(y~lgth | Haul,data=HaulCatch)
+```
+
+There is some consistency between hauls, but also considerable between-haul
+(BHV) variation is shown. Note that haul 5 (bottom right) suggests an `L50` of
+about 18 mm while other hauls suggest an `L50` of around 15 mm.
+
+### Fit a Richards selection curve to the stacked individual-haul data
+
+Fitting to the combined individual-hauls data allows for proper quantification
+of between-haul variability.
+
+```{r CC-RichardsFit_IndivHauls}
+Rich.fit2=SELECT(Stow.df,var.names=v.names,q.names=q.names,stype="richards",
+                sumHauls=F)
+ModelCheck(Rich.fit2, xlab="Carapace length (mm)", minE=5, plots=F)
+```
+
+The variance correction factor `Pearson.CF` shows that the actual variabilty
+could be about 10 times that assumed under the binomial model.
+
+With this amount of variability a bootstrap should be reasonable for
+appropriately quantifying the variability in the estimated parameters. (The
+bootstrap over-estimates parameter uncertainty if BHV is slight.)
+
+### Define function to return quantities of interest
+
+The function defined below returns `L25`, `L50`, `L75`, `SR`, and also the predicted
+retention probabilities for lengths from 5 mm to 25 mm.
+
+```{r}
+BootStats=function(data,var.names,q.names){
+  Fit=SELECT(data,var.names,q.names=q.names,stype="richards")
+  Pars=Estimates(Fit)[1:4,"par"]
+  Preds=predict(Fit,lens=5:25)[,3]
+  c(Pars,Preds)
+}
+#Check that BootStats works
+BootStats(Stow.df,v.names,q.names)
+```
+
+### Implement a bootstrap
+
+The bootstrap can produce some warning messages, but these can be ignored as
+they occur from unnecessary diagnostics calculated after each bootstrap fit.
+
+```{r Bootstrap, cache=T}
+nsim=1000 #Use at least 1000 in practice
+BootOut=bootSELECT(Stow.df,v.names,q.names,BootStats,haul="Haul",paired=T,
+                    nsim=nsim,verbose=F) #Use verbose=T to see progress
+```
+
+Now, calculate the bootstrap standard errors of `L25`, `L50`, `L75`, `SR`, and produce
+the 95% **simultaneous** bootstrap confidence band. Unlike pointwise confidence
+bands, we can be 95% confident that the true curve lies entirely within the
+simultaneous confidence band.
+
+```{r CC-Bootplot}
+Boot.Pars=BootOut[,1:4] #Extract L25, L50, L75 and SR
+Boot.Preds=BootOut[,-(1:4)] #Extract predicted values
+Predicted.Propns=predict(Rich.fit,lens=5:25)[,3]
+cat("Bootstrap estimated standard errors are\n",apply(Boot.Pars,2,sd))
+BootPlot(Boot.Preds,5:25,Predicted.Propns,Tots, show.pointwise=T)
+```
+
+This bootstrap plot also shows the pointwise confidence bands (dark band).
+This could be usedif one is interested in an a-priori hypothesis or interval
+For example, the dark band could be used to give a 95% confidence interval for 
+`L50`.
+However, statements about the general properties of the retention curve require
+use of the simultaneous (grey) confidence band.
+
+## Semiparametric analysis
+
+The Richards fit does estimate somewhat high retention for very small prawns, so
+here we explore the performance of a semiparametric fit using the `SELECT`
+function `SplineSELECT`.
+
+### Fit a spline selectivity curve
+
+```{r CC-SplineResids, message=F, warning=F}
+require(mgcv)
+Spline.fit=SplineSELECT(Stow.df,var.names=v.names,q.names=q.names,
+                        k=7,quasi=F)
+plot(Tots$lgth,resid(Spline.fit),type="h")
+abline(h=0)
+```
+
+```{r CC-SplineFit}
+plot(y~lgth,data=Tots,xlab="Carapace length (mm)")
+points(Tots$lgth,fitted(Spline.fit),type="l")
+AIC(Spline.fit)
+```
+
+The spline fit achieves a nice fit, but does have somewhat higher AIC than the
+Richards. 
+
+To get the length corresponding to a specific retention probability the `uniroot` function can be used.
+The code below defines a function call `Diff` that, for a given length,
+returns the difference between the retention probability at that length 
+and the target retention probability.
+It searches across a given range of lengths to find the one that sets the
+value of `Diff` to zero.
+For example, to find `L50`,
+
+```{r uniroot}
+Diff=function(len, target.prob=0.5) 
+  predict(Spline.fit,data.frame(lgth=len),type="response") - target.prob
+#Search over lengths between 10 and 20
+uniroot(Diff,c(10,20))$root
+```
+The `L50` of the fitted spline curve is 16.1 mm.
+
+
+## The three fitted curves
+
+Finally, we produce a plot overlaying the three curves that have been fitted,
+logistic, Richards, and spline.
+
+```{r CC-Overlay plot}
+plot(Logist.fit, xlab="Carapace length (mm)")
+points(Tots$lgth,fitted(Rich.fit),type="l",lty=2)
+points(Tots$lgth,fitted(Spline.fit),type="l",lty=3)
+legend(6,1,legend=c("logistic","Richards","spline"),lty=1:3)
+```

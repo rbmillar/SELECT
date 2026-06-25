@@ -2,7 +2,7 @@
 % Please edit documentation in R/BOOTSTRAP&PERMUTATION.R
 \name{BootPlot}
 \alias{BootPlot}
-\title{Produce the simultaneous bootstrap confidence band plot}
+\title{Produce the simultaneous-inclusion bootstrap confidence band plot}
 \usage{
 BootPlot(
   BootPreds,
@@ -14,7 +14,8 @@ BootPlot(
   txt = 8,
   xlab = "Length (cm)",
   ylab = "Catch proportion",
-  show.pointwise = FALSE
+  show.pointwise = FALSE,
+  show.bonferroni = FALSE
 )
 }
 \arguments{
@@ -36,7 +37,9 @@ BootPlot(
 
 \item{ylab}{Y-axis label.}
 
-\item{show.pointwise}{Logical. If TRUE, also show pointwise intervals as a darker inner band.}
+\item{show.pointwise}{Logical. If TRUE, also show pointwise intervals as an inner band.}
+
+\item{show.bonferroni}{Logical. If TRUE, also show Bonferroni intervals as (typically) an outer band.}
 }
 \value{
 A list with components: \code{plot} (ggplot GROB), \code{eps} (the quantile probability used),

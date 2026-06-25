@@ -11,6 +11,7 @@ SELECT(
   stype = "logistic",
   sumHauls = TRUE,
   q.names = NULL,
+  q.ODadjust = T,
   Meshsize = NULL,
   x0 = NULL,
   rel.power = NULL,
@@ -48,6 +49,12 @@ but spread fixed) that, unlike the others, does not follow geometric similarity.
 fitting the curve. Summing, or not, makes no difference to the fit.}
 
 \item{q.names}{Character vector giving the names of sampling fractions, if any.}
+
+\item{q.ODadjust}{Over-dispersion adjustment. If TRUE (default) and the catches
+have been adjusted upwards due to sampling, then the summed catch numbers are
+adjusted downwards to have total equal to the actual number of fish measured.
+This does not change catch share proportions, but will reduce potential
+overfitting of polynomial and spline curves due to overdispersion.}
 
 \item{Meshsize}{Numeric vector giving the mesh sizes for each gear. Can also be
 used with trawls if the control codend is possibly not fully non-selective,

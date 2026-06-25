@@ -185,7 +185,7 @@ BootPlotPtWise=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,
 
 
 
-#' Produce the simultaneous bootstrap confidence band plot
+#' Produce the simultaneous-inclusion bootstrap confidence band plot
 #' @description `BootPlot` uses ggplot to produce a grob (graphical object)
 #' displaying the fitted curve and simultaneous bootstrap confidence intervals.
 #' Unlike pointwise intervals, simultaneous intervals ensure that the specified
@@ -200,7 +200,9 @@ BootPlotPtWise=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,
 #' @param txt Size of text used in the plot axes.
 #' @param xlab X-axis label.
 #' @param ylab Y-axis label.
-#' @param show.pointwise Logical. If TRUE, also show pointwise intervals as a darker inner band.
+#' @param show.pointwise Logical. If TRUE, also show pointwise intervals as an inner band.
+#' @param show.bonferroni Logical. If TRUE, also show Bonferroni intervals as (typically) an outer band.
+#' 
 #' @return A list with components: `plot` (ggplot GROB), `eps` (the quantile probability used),
 #' and `coverage.achieved` (the actual coverage achieved).
 #' @details
@@ -213,16 +215,16 @@ BootPlotPtWise=function(BootPreds,lenseq,predn,Data=NULL,coverage=0.95,eps=NULL,
 #' @export
 #'
 BootPlot=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NULL,
-                   txt=8, xlab="Length (cm)", ylab="Catch proportion",
-                   show.pointwise=FALSE) {
-
+                  txt=8, xlab="Length (cm)", ylab="Catch proportion",
+                  show.pointwise=FALSE,show.bonferroni=FALSE) {
+  
   # Remove rows with NA values
   valid.rows <- complete.cases(BootPreds)
   BootPreds <- BootPreds[valid.rows, , drop=FALSE]
   nsim <- nrow(BootPreds)
-
+  
   if(nsim < 99) warning("Few valid bootstrap replicates - intervals may be unreliable")
-
+  
   # Determine which columns (lengths) to use for coverage calculation
   if(is.null(limits)) {
     use_cols <- seq_along(lenseq)
@@ -230,7 +232,7 @@ BootPlot=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NUL
     use_cols <- which(lenseq >= limits[1] & lenseq <= limits[2])
     if(length(use_cols) == 0) stop("No lengths fall within specified limits")
   }
-
+  
   # Function to compute coverage for a given eps
   # Coverage = proportion of bootstrap curves entirely within [lower, upper] bounds
   compute_coverage <- function(eps) {
@@ -243,7 +245,7 @@ BootPlot=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NUL
     mean(within_bounds)
   }
   init.coverage=compute_coverage( (1-coverage)/2 )
-
+  
   # Binary search to find eps that achieves desired coverage
   # eps=0 gives 100% coverage, eps=(1-coverage)/2 is the pointwise eps
   # It is nimbler to use uniroot (stats) to find eps but it doesn't find exact
@@ -257,46 +259,44 @@ BootPlot=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NUL
   eps_high <- (1 - coverage) / 2
   target <- coverage
   tol <- 0.0001
-
+  
   # Binary search
   max_iter <- 50
   for(i in 1:max_iter) {
     eps_mid <- (eps_low + eps_high) / 2
     cov_mid <- compute_coverage(eps_mid)
-
+    
     if(abs(cov_mid - target) < tol) {
       break
     }
-
+    
     # Coverage increases as eps decreases (bounds get wider)
-    if(cov_mid < target) {
-      # Need wider bounds, decrease eps
+    if(cov_mid < target) {  # Need wider bounds, decrease eps
       eps_high <- eps_mid
-    } else {
-      # Bounds too wide, increase eps
+    } else { # Bounds too wide, increase eps
       eps_low <- eps_mid
     }
   }
-
+  
   eps_final <- eps_mid
   coverage_achieved <- cov_mid
-
+  
   # Compute final bounds
   Preds.lower <- apply(BootPreds, 2, quantile, prob=eps_final, na.rm=TRUE)
   Preds.upper <- apply(BootPreds, 2, quantile, prob=1-eps_final, na.rm=TRUE)
-
+  
   Pdf <- data.frame(len=lenseq, pred=predn, low=Preds.lower, upp=Preds.upper)
-
+  
   # Build the plot
   BootGROB <- ggplot(data=Pdf, aes(len)) +
     geom_ribbon(data=Pdf[use_cols,], 
-                aes(x=len, ymin=low, ymax=upp), alpha=0.2) +
+                aes(x=len, ymin=low, ymax=upp), alpha=0.5) +
     geom_line(data=Pdf, aes(len, pred)) + ylim(0,1) +
     xlab(xlab) + ylab(ylab) + theme_bw() +
     theme(axis.text=element_text(size=txt), axis.title=element_text(size=txt)) +
     theme(plot.margin = unit(c(0.75, 0.5, 0.25, 0.5), "cm"))
-
-  # Optionally add pointwise intervals as inner band
+  
+  # Optionally add pointwise intervals as outer band
   if(show.pointwise) {
     pw_eps <- (1 - coverage) / 2
     Preds.lower.pw <- apply(BootPreds, 2, quantile, prob=pw_eps, na.rm=TRUE)
@@ -304,18 +304,30 @@ BootPlot=function(BootPreds, lenseq, predn, Data=NULL, coverage=0.95, limits=NUL
     Pdf$low.pw <- Preds.lower.pw
     Pdf$upp.pw <- Preds.upper.pw
     BootGROB <- BootGROB +
-      geom_ribbon(data=Pdf, aes(x=len, ymin=low.pw, ymax=upp.pw), alpha=0.3)
+      geom_ribbon(data=Pdf[use_cols,], aes(x=len, ymin=low.pw, ymax=upp.pw), alpha=0.1, colour="red")
   }
-
+  
+  # Optionally add Bonferroni intervals as inner band
+  n.predlens=ncol(BootPreds)
+  if(show.bonferroni) {
+    bf_eps <- ( (1 - coverage) / 2 ) / n.predlens
+    Preds.lower.bf <- apply(BootPreds, 2, quantile, prob=bf_eps, na.rm=TRUE)
+    Preds.upper.bf <- apply(BootPreds, 2, quantile, prob=1-bf_eps, na.rm=TRUE)
+    Pdf$low.bf <- Preds.lower.bf
+    Pdf$upp.bf <- Preds.upper.bf
+    BootGROB <- BootGROB +
+      geom_ribbon(data=Pdf[use_cols,], aes(x=len, ymin=low.bf, ymax=upp.bf), alpha=0.1, colour="blue")
+  }
+  
   if(!is.null(Data)) BootGROB <- BootGROB + geom_point(data=Data, aes(x=lgth, y=y))
-
+  
   cat("\n initial.pointwise.coverage:",coverage,
-      "\n initial.simultaneous.coverage:",init.coverage,
       "\n adjusted.pointwise.coverage:",1-2*eps_final,
-      "\n adjusted.simultaneous.coverage:",coverage_achieved,"\n")
+      "\n initial.simultaneous.coverage:",init.coverage,
+      "\n adjusted.simultaneous.coverage:",coverage_achieved,
+      "\n bonferroni.pointwise.coverage:",1-(1-coverage)/n.predlens,"\n")
   BootGROB
 }
-
 
 
 #' Sample permutation distribution of a user-defined statistic

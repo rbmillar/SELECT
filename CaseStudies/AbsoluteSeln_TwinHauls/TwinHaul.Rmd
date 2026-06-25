@@ -1,7 +1,21 @@
 ---
 title: "SELECT package demonstration   \n   Twin haul"
-output: word_document
+output:
+  html_document:
+    df_print: paged
 ---
+
+```{r setup, include=F}
+#Save figures
+knitr::opts_chunk$set(
+  fig.height=3,
+  fig.path = '../figures/',
+  dev = c('png','pdf') )  # Change to pdf when needed
+
+knitr::opts_knit$set(global.par = TRUE)
+par(oma=c(0,0,0,0),mar=c(4,4,0,4),las=1)
+```
+TBC: Add demo of fit with psplit=0.5
 
 ## Summary
 
@@ -46,7 +60,7 @@ v.names=c("lgth","control","codend")
 ```
 
 ### Produce plot of catch-share proportions
-```{r}
+```{r TH-Data}
 Tots=Raw2Tots(sqKP.df,v.names)
 Tots=transform(Tots,n=codend+control,y=codend/(codend+control)) 
 Tots
@@ -55,17 +69,19 @@ abline(h=0.5,lty=3)
 ```
 
 ### Fit logistic selection curve
-```{r}
+```{r TH-LogisticFit}
+par(mar=c(4,4,1,4),las=1)
 Logist.fit=SELECT(Tots,var.names=v.names,dtype="ec")
 plot(Logist.fit)
 ModelCheck(Logist.fit)
+abline(h=0.5,lty=3)
 Estimates(Logist.fit)
 ```
 The logistic fit looks good.
 
 
 ### Fit Richards curve
-```{r}
+```{r TH-RichardsFit}
 Rich.fit=SELECT(Tots,var.names=v.names,dtype="ec",stype="richards")
 plot(Rich.fit)
 ModelCheck(Rich.fit)
@@ -80,7 +96,7 @@ The logistic is good enough.
 
 ### Produce a lattic plot of catch-share proportions by haul
 
-```{r, fig.height=5}
+```{r TH-LatticePlot, fig.height=5}
 HaulCatch=Raw2Tots(sqKP.df,v.names,sumHauls=F)
 HaulCatch=transform(HaulCatch,n=codend+control,y=codend/(codend+control)) 
 require(lattice) #For xyplot

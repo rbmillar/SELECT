@@ -45,8 +45,9 @@ predict.SELECT=function(obj,lens=NULL,...) {
   PlotCurves(obj,plotlens=lens,plot.out=F,...) }
 
 #' @export
-fitted.SELECT=function(obj,...) {
-  Fit=PlotCurves(obj,plot.out=F,...) 
+fitted.SELECT=function(obj,all.columns=F,...) {
+  Fit=PlotCurves(obj,plot.out=F,...)
+  if(!all.columns) Fit=Fit[,ncol(Fit)] #Only last column
   Fit }
 
 #' @export

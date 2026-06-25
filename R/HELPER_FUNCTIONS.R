@@ -342,7 +342,8 @@ calcOD=function(O,E,npar,minE=1,verbose=T) {
   EqualRowSums={ max(abs(apply(O,1,sum)-apply(E,1,sum)))<1e-6 }
   if(verbose & EqualRowSums)
     cat("\nNOTE: O and E have equal row sums, so dof will be reduced by
-         the number of rows used") else
+         the number of rows used") 
+  if(verbose & !EqualRowSums)
     cat("\nNOTE: O and E have unequal row sums, i.e., non-SELECT fit")
   dof.adj=ifelse(EqualRowSums,1,0)
 
@@ -357,11 +358,46 @@ calcOD=function(O,E,npar,minE=1,verbose=T) {
   dof=sum(pmax(0,apply(Index,1,sum,na.rm=TRUE)-dof.adj))-npar
   Pearson.chisq=sum((Pearson.resids^2)[Index],na.rm=TRUE)
   Deviance=sum((Dev.resids^2)[Index],na.rm=TRUE)
-  Deviance.CF=Deviance/dof
-  Pearson.CF=Pearson.chisq/dof
-  ODstats=cbind(Deviance,Pearson.chisq,dof,Deviance.CF,Pearson.CF)
+  Deviance.OD=Deviance/dof
+  Pearson.OD=Pearson.chisq/dof
+  ODstats=cbind(Deviance,Pearson.chisq,dof,Deviance.OD,Pearson.OD)
   return(ODstats)
   }
+
+#===============================================================================
+#' Calculate the replication estimate of overdispersion, REP.
+#' @description REP is a simple estimation of overdispersion calculated
+#' from stacked combined-hauls data based on fitting. 
+#' It should not be used on unpaired data.
+#' a full model (one term for each length) to stacked combined-hauls data.
+#' It it based on the Pearson chi-square estimated of overdisperion
+#' from fitting the full model ((one term for each length).
+#' For robustness against sparsity, it is
+#' important that only counts with a minimum specified fitted value are used.
+#' See Millar and Fryer (1999, Estimating the size-selection curves of 
+#' towed gears, traps, nets and hooks) for details.
+#' @param data Catch data in SELECT format
+#' @param var.names Character vector giving the variable names.
+#' The first name is always the length variable,
+#' followed by names of the raw catch variables. E.g., c("lgth","nA","nB")
+#' @param q.name Character vector giving the names of sampling fractions, if any.
+#' @param minE Numeric value giving the minimum fitted count for an observation
+#' to be used in the Pearson chi-square.
+#' @return dataframe
+#' @export
+Rep.OD=function(data,var.names,q.names=NULL,minE=1) {
+  if (typeof(var.names) != "character" | length(var.names) != 3) 
+    stop("SELECT errror: \n Variable names must be character and of length 3")
+  if (!is.null(q.names) & typeof(q.names) != "character") 
+    stop("SELECT errror \n Sampling fraction variable names must be character")
+  Data = Raw2Tots(data, var.names, q.names=q.names, sumHauls=F, q.ODadjust=F)
+  O=as.matrix(Data[,var.names[-1]]) #Observed
+  n=apply(O,1,sum) #Length totals
+  Full.fit=glm(O~as.factor(Data[,1]),family=binomial)
+  yhat=fitted(Full.fit)
+  E=n*cbind(yhat,1-yhat)
+  calcOD(O,E,npar=length(coef(Full.fit)), minE=minE, verbose=F)
+}
 
 #===============================================================================
 #' Initial parameter values for SELECT fits
@@ -383,8 +419,10 @@ StartValues=function(rtype,Data) {
     switch(substr(rtype,1,6),
          "cc.log"={ c(a0,b0) },
          "cc.ric"={ c(a0,b0,0) },
+         "cc.Clo"={ c(a0,b0,-3) },
          "ec.log"={ c(a0,b0,0) },
          "ec.ric"={ c(a0,b0,0,0) },
+         "ec.Clo"={ c(a0,b0,-3,0) },
          stop("Please provide a value of x0 (initial parameter values")
     ) }
   else {

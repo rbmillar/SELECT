@@ -13,27 +13,33 @@
 #'
 selncurves=function(rtype) {
   switch( #Return "logistic" or "richards" for all uses of these curves
-    {stype=substr(rtype,4,99)},
-   "logistic"={ #Parameters are a and b (i.e., logit link)
+    {stype=substr(rtype,4,9)},
+   "logist"={ #Parameters are a and b (i.e., logit link)
       #Geometric similarity is assumed. A control has meshsize of zero.
       function(lens,Meshsize,th) {
       ratio=Meshsize/max(Meshsize) #NB: Baseline is codend
       a=th[1]; b=th[2]
       seln=ifelse(Meshsize==0,1,plogis(a+b*lens/ratio))
       return(seln) } },
-   "richards"={ #Parameters are a, b and delta
+   "richar"={ #Parameters are a, b and delta
       #Geometric similarity is assumed. A control has meshsize of zero.
       function(lens,Meshsize,th) {
       ratio=Meshsize/max(Meshsize) #NB: Baseline is codend
       a=th[1]; b=th[2]; delta=exp(th[3])
       seln=ifelse(Meshsize==0,1,plogis(a+b*lens/ratio)^(1/delta))
       return(seln) } },
-   "norm.loc"={
+   "Clogis"={ #Stepped logistic
+     function(lens,Meshsize,th) {
+       ratio=Meshsize/max(Meshsize) #NB: Baseline is codend
+       a=th[1]; b=th[2]; K=plogis(th[3])
+       seln=ifelse(Meshsize==0,1,K+(1-K)*plogis(a+b*lens/ratio))
+       return(seln) } },
+   "norm.l"={ #norm.loc
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln=exp(-(lens-th[1]*relsize)^2/(2*th[2]^2))
        return(seln) } },
-   "norm.sca"=, "normal"={
+   "norm.s"=, "normal"={
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln=exp(-(lens-th[1]*relsize)^2/(2*th[2]^2*relsize^2))
@@ -45,13 +51,13 @@ selncurves=function(rtype) {
        seln=(lens/((alpha-1)*beta*relsize))^(alpha-1)
        seln=seln*exp(alpha-1-lens/(beta*relsize))
        return(seln) } },
-   "lognorm"={
+   "lognor"={
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln=(relsize/lens)*exp(th[1]-th[2]^2/2)
        seln=seln*exp( -(log(lens)-th[1]-log(relsize))^2/(2*th[2]^2) )
        return(seln) } },
-   "binorm.sca"=, "binormal"={
+   "binorm"={
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln1=exp(-(lens-th[1]*relsize)^2/(2*th[2]^2*relsize^2))
@@ -59,7 +65,7 @@ selncurves=function(rtype) {
        p=exp(th[5])/(1+exp(th[5])) #i.e., th[5]=logit(p)
        seln=p*seln1+(1-p)*seln2
        return(seln) } },
-   "bilognorm"={
+   "bilogn"={
        function(lens,Meshsize,th) {
        relsize=Meshsize/min(Meshsize)
        seln1=(relsize/lens)*exp(th[1]-th[2]^2/2)
@@ -69,10 +75,11 @@ selncurves=function(rtype) {
        p=exp(th[5])/(1+exp(th[5])) #i.e., th[5]=logit(p)
        seln=p*seln1+(1-p)*seln2
        return(seln) } },
-       stop(paste0('SELECT errror message: ',stype,' not recognised.\n',
-        'Possible direct comparison types are , "norm.loc", "normal", "gamma",
+       stop(paste0('SELECT error message: ',stype,' not recognised.\n',
+        'Possible direct comparison (gillnet) types are , "norm.loc", "normal", "gamma",
         "lognorm", "logistic", "richards, "binormal", and "bilognorm". \n',
-        'Possible covered-codend and alternative hauls types are "logistic" and "richards" \n'))
+        'Possible covered-codend and paired/alternative trawl types are 
+        "logistic", "richards", and "Clogistic". \n'))
    #"binorm.loc"={ #Not yet fully implemented
    #    function(lens,Meshsize,th) {
    #    relsize=Meshsize/min(Meshsize)

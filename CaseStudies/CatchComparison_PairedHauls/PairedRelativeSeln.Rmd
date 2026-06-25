@@ -1,13 +1,24 @@
 ---
 title: "SELECT package demonstration   \n   Paired-haul relative selectivity "
 output:
-  word_document: default
-  html_document: default
   pdf_document: default
+  html_document: default
+  word_document: default
 editor_options: 
   markdown: 
     wrap: 80
 ---
+
+```{r setup, include=F}
+#Save figures
+knitr::opts_chunk$set(
+  fig.height=3,
+  fig.path = '../figures/',
+  dev = c('png','pdf') )  # Change to pdf when needed
+
+knitr::opts_knit$set(global.par = TRUE)
+par(oma=c(0,0,0,0),mar=c(4,4,0,4),las=1)
+```
 
 ## Summary
 
@@ -52,13 +63,14 @@ require(tidyverse)
 require(mgcv)
 require(SELECT)
 require(readxl) #This package is installed with tidyverse
-nsim=1000 #For bootstrapping and permutation tests, set to >=999 in practice
+nboot=1000
+nperm=10 #For bootstrapping and permutation tests, set to >=999 in practice
 #source("T:/Russell_SSD/ACTIVE/CurrentWork/RPackages/SELECT/R/BOOTSTRAP&PERMUTATION.R")
 ```
 
 ### Read in the data
 
-The data for each mesh size are in individual `xlsx` files and require merging.
+The data for each mesh size are in individual `xlsx` sheets and require merging.
 
 ```{r}
 GearA.df=read_excel("SchoolPrawnLenFreqs.xlsx", sheet = "32 square trawl")
@@ -83,16 +95,19 @@ are the same for every tow (`inner_join` should not be used otherwise).
 Pairs.df = inner_join(GearA.df,GearB.df,by=c("Haul","CL"))
 #Convert scaling factors to sampling fractions
 Pairs.df = Pairs.df |>
-   transform(qA=1/sfA,qB=1/sfB) |> filter(CL>=5 & CL<=25)
-#write.csv(Pairs.df,"Pairs.RData",row.names=F)
+   transform(qA=1/sfA,qB=1/sfB) |> filter(CL>=5 & CL<=23)
+#write.csv(Pairs.csv,"Pairs.RData",row.names=F)
+T45SidePanels=Pairs.df
+#save(T45SidePanels,file="T45SidePanels.RData")
+Catches.df=Pairs.df |> transform(nA=nA/qA,nB=nB/qB)
 ```
 
 ```{r, echo=F, eval=F}
-### Inspect the data
+# Calculate some summary statistics and compare catches
+# above and below minimum legal size
 MLS=15 #Minimum legal size
 cat("Number of haul pairs is",length(unique(Pairs.df$Haul)),"\n")
-#NB: No need to correct for q, since q is same within gear
-Catches.df=Pairs.df |> transform(nA=nA/qA,nB=nB/qB)
+
 Catches.df |> group_by(CL) |> summarize(nA=sum(nA),nB=sum(nB))
 Catches.df |> group_by(Haul) |> 
    summarize(PropnA=sum(nA[CL>=MLS])/sum(nA), 
@@ -120,9 +135,9 @@ qNames=c("qA","qB")
 This fit used the `SplineSELECT` defaults, but more generally one may want to
 try other values of `k`, say 5 and 10.
 
-```{r}
+```{r PH-SplineFit}
 #Define the bootstrap prediction function
-CLseq=5:23 #Carapace lengths to use for predn
+CLseq=seq(5,23,1) #Carapace lengths to use for predn
 PrednFnc=function(data,var.names,q.names) {
   SplineFit=SplineSELECT(data,var.names,q.names) #Using spline defaults
   predict(SplineFit,newdata=data.frame(CL=CLseq),type="response") }
@@ -141,26 +156,42 @@ abline(h=0.5,lty=3)
 ### Do the bootstrap of the catch share curve
 
 ```{r Running bootstrap, warning=F, message=F}
-BootPreds=bootSELECT(Pairs.df,vNames,qNames,PrednFnc,haul="Haul",nsim=nsim,
-                     paired=T,verbose=F) #Use verbose=T to see progress
+BootPreds=bootSELECT(Pairs.df,vNames,qNames,PrednFnc,haul="Haul",nsim=nboot,
+                     paired=T,verbose=T) #Use verbose=T to see progress
 ```
-### Simultaneous boostrap confidence band plots
-```{r}
-BootPlot(BootPreds,CLseq,predn,Data=Tots.df) +
+### Simultaneous bootstrap confidence band plots
+```{r PH-BootPlot}
+BootPlot(BootPreds,CLseq,predn,Data=Tots.df,xlab="Carapace length (mm)") +
           geom_hline(yintercept=0.5,linetype="dashed")
 ```
 
-```{r}
+```{r PH-BootPlotWithPtwise}
 #With pointwise confidence band also shown
-BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.pointwise=T) +
-         geom_hline(yintercept=0.45,linetype="dashed")
+BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.pointwise=T,
+          xlab="Carapace length (mm)") +
+         geom_hline(yintercept=0.5,linetype="dashed")
 ```
 
-```{r}
+```{r PH-BootPlotWithBonf}
+#With pointwise confidence band also shown
+BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.bonferroni=T,
+          xlab="Carapace length (mm)") +
+         geom_hline(yintercept=0.5,linetype="dashed")
+```
+
+```{r PH-BootPlotWithPtwiseAndBonf}
+#With pointwise confidence band also shown
+BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.bonferroni=T,
+         show.pointwise=T, xlab="Carapace length (mm)") +
+         geom_hline(yintercept=0.5,linetype="dashed")
+
+```
+
+```{r PH-LimitedBootPlotWithPtwise}
 #Setting limits to include only lengths where >30 prawn caught
 #This reduces the number of multiple comparisons
 BootPlot(BootPreds,CLseq,predn,Data=Tots.df,show.pointwise=T,
-                  limits=c(9,21)) +
+          show.bonferroni=T,limits=c(9,21),xlab="Carapace length (mm)") +
          geom_hline(yintercept=0.5,linetype="dashed")
 ```
 
@@ -185,7 +216,6 @@ ObsStats
 ### Do permutations
 
 ```{r Running permutations, warning=F, message=F}
-nperm=999
 PermStats=permSELECT(Pairs.df,vNames,qNames,StatsFnc,haul="Haul",nsim=nperm,
                    paired=T,verbose=F) #Use verbose=T to see progress
 colnames(PermStats)=names(ObsStats) #To add column names to PermStats
@@ -221,7 +251,7 @@ overfit. See PolySELECT documentation for details.**
 
 ### Averaged polynomial fits
 
-```{r Average polynomial fits, warning=F, message=F}
+```{r, warning=F, message=F}
 require(MuMIn) #For MuMIn::dredge
 options(na.action = "na.fail") #To ensure dredge terminates if there are NAs
 #The default averaged-polynomial fit
@@ -230,7 +260,8 @@ PolyFit=PolySELECT(Pairs.df,vNames,qNames)
 HerrmannFit=PolySELECT(Pairs.df,vNames,qNames,q.ODadjust=F,quasi=F,All=T)
 ```
 
-```{r Averaged polynomial plots, warning=F, message=F}
+```{r PH-OverlayFits, warning=F, message=F}
+par(oma=c(0,0,0,0),mar=c(4,4,1,4),las=1)
 PolyPredn=predict(PolyFit$avg.fit,newdata=data.frame(CL=CLseq),
                   type="response")
 HerrmannPredn=predict(HerrmannFit$avg.fit,newdata=data.frame(CL=CLseq),
@@ -241,7 +272,7 @@ points(CLseq,predn,type="l",col="blue") #Spline
 points(CLseq,PolyPredn,type="l",col="blue",lty=2) #PolySELECT
 points(CLseq,HerrmannPredn,type="l",col="red",lty=2) #Herrmann et al. (2017)
 legend("topleft",
-       legend=c("Spline","PolySELECT default","Herrmann et al. (2017)"),
+       legend=c("Spline","order-weighted quartic","32-submodel quartic"),cex=0.8,
        col=c("blue","blue","red"),lty=c(1,2,2),bty="n")
 abline(h=0.5,lty=3)
 
